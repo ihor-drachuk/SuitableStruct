@@ -1,0 +1,109 @@
+#include <string>
+#include <gtest/gtest.h>
+#include <SuitableStruct/Serializer.h>
+#include <SuitableStruct/Comparisons.h>
+#include <SuitableStruct/Hashes.h>
+#include <SuitableStruct/Swap.h>
+
+using namespace SuitableStruct;
+
+struct Struct_v0
+{
+    int a {};
+
+    using ssVersions = std::tuple<Struct_v0>; // Versioning
+};
+
+namespace SuitableStruct {
+
+template<>
+struct Handlers<Struct_v0> : public std::true_type
+{
+    static Buffer ssSaveImpl(const Struct_v0& v) { return Buffer::fromValue(v.a); }
+    static void ssLoadImpl(BufferReader& buffer, Struct_v0& value) { buffer.read(value.a); }
+    static uint32_t ssHashImpl(const Struct_v0& v) { return v.a; };
+};
+
+} // namespace
+
+struct Struct_v1
+{
+    int a {};
+    float b {};
+
+    auto ssTuple() const { return std::tie(a, b); }       // Serialization / Deserialization
+
+    using ssVersions = std::tuple<Struct_v0, Struct_v1>; // Versioning
+    void ssConvertFrom(const Struct_v0& prev) { a = prev.a; }
+};
+
+
+struct Pod1
+{
+    Buffer ssSaveImpl() const { return {}; };
+    void ssLoadImpl(BufferReader&) { };
+    uint32_t ssHashImpl() const { return 1; };
+
+    bool operator==(const Pod1) const { return true; }
+    bool operator!=(const Pod1) const { return false; }
+    bool operator<(const Pod1) const { return false; }
+    bool operator>(const Pod1) const { return false; }
+    bool operator<=(const Pod1) const { return true; }
+    bool operator>=(const Pod1) const { return true; }
+};
+
+
+struct Pod2
+{
+    bool operator==(const Pod2) const { return true; }
+    bool operator!=(const Pod2) const { return false; }
+    bool operator<(const Pod2) const { return false; }
+    bool operator>(const Pod2) const { return false; }
+    bool operator<=(const Pod2) const { return true; }
+    bool operator>=(const Pod2) const { return true; }
+};
+
+
+namespace SuitableStruct {
+
+template<>
+struct Handlers<Pod2> : public std::true_type
+{
+    static Buffer ssSaveImpl(const Pod2&) { return {}; }
+    static void ssLoadImpl(BufferReader&, Pod2&) {}
+    static uint32_t ssHashImpl(const Pod2&) { return 2; }
+};
+
+} // namespace
+
+
+struct Struct_v2
+{
+    int a {};
+    double b {};
+    std::string c;
+    Pod1 d1;
+    Pod2 d2;
+
+    using ssVersions = std::tuple<Struct_v0, Struct_v1, Struct_v2>; // Versioning
+    auto ssTuple() const { return std::tie(a, b, c, d1, d2); }      // Serialization / Deserialization
+    void ssConvertFrom(const Struct_v1& prev) { a = prev.a; b = prev.b; c = "Q"; }
+};
+
+SS_HASHES(Struct_v2);
+SS_COMPARISONS(Struct_v2);
+SS_SWAP(Struct_v2);
+
+using Struct = Struct_v2;
+
+TEST(SuitableStruct, Stub)
+{
+    Struct_v0 vOld;
+    vOld.a = 22;
+    auto buf = ssSave(vOld);
+
+    Struct v, v2;
+    ssLoad(buf, v);
+
+    ssSwap(v, v2);
+}
