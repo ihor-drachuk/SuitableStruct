@@ -41,7 +41,9 @@ TEST(SuitableStruct, SerializationTest)
     ASSERT_NE(value1, value2);
 
     auto saved = ssSave(value1);
-    ssLoad(saved, value2);
+    BufferReader reader(saved);
+    ssLoad(reader, value2);
+    ASSERT_EQ(reader.rest(), 0);
 
     ASSERT_EQ(value1, value2);
 }

@@ -58,7 +58,9 @@ public:
 
     BufferReader readRaw(size_t sz) {
         checkPosition(sz);
-        return BufferReader(m_buffer, m_offsetStart + m_offset, sz);
+        const BufferReader result(m_buffer, m_offsetStart + m_offset, sz);
+        advance(sz);
+        return result;
     }
 
     template<typename T,

@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <tuple>
 #include <memory>
+#include <limits>
 #include <SuitableStruct/Buffer.h>
 #include <SuitableStruct/DefaultTypes.h>
 #include <SuitableStruct/Helpers.h>
@@ -318,6 +319,9 @@ void ssLoad(BufferReader& buffer, T& obj, bool protectedMode = true)
         buffer.read(size);
         buffer.read(hash);
 
+        if (size > std::numeric_limits<size_t>::max())
+            throw std::runtime_error("Can't load! Buffer is too large!");
+
         auto groupData = buffer.readRaw(size);
         const auto actualHash = groupData.hash();
 
@@ -331,6 +335,12 @@ void ssLoad(BufferReader& buffer, T& obj, bool protectedMode = true)
         auto ver = ssReadVersion<T>(buffer);
         ssLoadAndConvert(buffer, obj, ver);
     }
+}
+
+template<typename T>
+void ssLoad(BufferReader&& reader, T& obj, bool protectedMode = true)
+{
+    ssLoad(static_cast<BufferReader&>(reader), obj, protectedMode);
 }
 
 template<typename T>
