@@ -1,6 +1,6 @@
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Hashes.h>
-#include <stdexcept>
+#include <SuitableStruct/Exceptions.h>
 
 namespace SuitableStruct {
 
@@ -13,7 +13,7 @@ uint32_t BufferReader::hash() const
 void BufferReader::checkPosition(size_t sz) const
 {
     if (position() + sz > size())
-        throw std::out_of_range("Out of range");
+        Internal::throwOutOfRange();
 }
 
 } // namespace SuitableStruct

@@ -1,5 +1,4 @@
 #pragma once
-#include <stdexcept>
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
@@ -9,7 +8,8 @@
 #include <SuitableStruct/DefaultTypes.h>
 #include <SuitableStruct/Helpers.h>
 #include <SuitableStruct/Handlers.h>
-#include <SuitableStruct/LongSSO.h>
+#include <SuitableStruct/Exceptions.h>
+
 
 // Features:
 //   - Serialization / deserialization for structures
@@ -314,22 +314,25 @@ template<typename T>
 void ssLoad(BufferReader& buffer, T& obj, bool protectedMode = true)
 {
     if (protectedMode) {
+        T temp;
+
         uint64_t size;
         decltype(std::declval<Buffer>().hash()) /*uint32*/ hash;
         buffer.read(size);
         buffer.read(hash);
 
         if (size > std::numeric_limits<size_t>::max())
-            throw std::runtime_error("Can't load! Buffer is too large!");
+            Internal::throwTooLarge();
 
         auto groupData = buffer.readRaw(size);
         const auto actualHash = groupData.hash();
 
         if (hash != actualHash)
-            throw std::runtime_error("Integrity check failed!");
+            Internal::throwIntegrity();
 
         auto ver = ssReadVersion<T>(groupData);
-        ssLoadAndConvert(groupData, obj, ver);
+        ssLoadAndConvert(groupData, temp, ver);
+        obj = std::move(temp);
 
     } else {
         auto ver = ssReadVersion<T>(buffer);
@@ -346,8 +349,41 @@ void ssLoad(BufferReader&& reader, T& obj, bool protectedMode = true)
 template<typename T>
 void ssLoad(const Buffer& buffer, T& obj, bool protectedMode = true)
 {
-    BufferReader reader(buffer);
-    ssLoad(reader, obj, protectedMode);
+    ssLoad(BufferReader(buffer), obj, protectedMode);
+}
+
+template<typename T>
+T ssLoadRet(BufferReader& reader, bool protectedMode = true)
+{
+    T result;
+    ssLoad(reader, result, protectedMode);
+    return result;
+}
+
+template<typename T>
+T ssLoadRet(BufferReader&& reader, bool protectedMode = true)
+{
+    return ssLoadRet<T>(static_cast<BufferReader&>(reader), protectedMode);
+}
+
+template<typename T>
+T ssLoadRet(const Buffer& buffer, bool protectedMode = true)
+{
+    return ssLoadRet<T>(BufferReader(buffer), protectedMode);
+}
+
+template<typename T>
+T ssLoadImplRet(BufferReader& reader)
+{
+    T result;
+    ssLoadImpl(reader, result);
+    return result;
+}
+
+template<typename T>
+T ssLoadImplRet(BufferReader&& reader)
+{
+    return ssLoadImplRet<T>(static_cast<BufferReader&>(reader));
 }
 
 } // namespace SuitableStruct

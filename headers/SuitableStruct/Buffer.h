@@ -3,6 +3,10 @@
 #include <type_traits>
 #include <SuitableStruct/LongSSO.h>
 
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+class QByteArray;
+#endif
+
 namespace SuitableStruct {
 
 class Buffer
@@ -10,6 +14,7 @@ class Buffer
 public:
     inline Buffer() = default;
     inline Buffer(size_t size) { m_sso.allocate_copy(size); }
+    inline Buffer(const uint8_t* data, size_t size) { m_sso.allocate_copy(size, data); }
     inline Buffer(const Buffer& rhs) = default;
     inline Buffer(Buffer&& rhs) = default;
     inline ~Buffer() = default;
@@ -45,6 +50,13 @@ public:
     inline const uint8_t* data() const { return m_sso.data(); };
     inline const uint8_t* cdata() const { return data(); }
     inline uint8_t* data() { return m_sso.data(); }
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+    QByteArray toQByteArray() const;
+    QByteArray toQByteArrayRef() const;
+
+    [[nodiscard]] static Buffer fromQByteArray(const QByteArray& buffer);
+#endif
 
 private:
     LongSSO<> m_sso;
