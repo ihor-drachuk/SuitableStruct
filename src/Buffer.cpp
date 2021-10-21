@@ -14,7 +14,7 @@ bool Buffer::operator==(const Buffer& rhs)
 
 bool Buffer::operator!=(const Buffer& rhs)
 {
-    return m_sso != rhs.m_sso;
+    return !(*this == rhs);
 }
 
 Buffer& Buffer::operator+= (const Buffer& rhs)

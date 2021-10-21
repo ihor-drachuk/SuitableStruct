@@ -20,7 +20,7 @@ public:
     inline ~Buffer() = default;
 
     template<typename T,
-             typename std::enable_if_t<std::is_fundamental<T>::value>* = nullptr>
+             typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
     [[nodiscard]] static Buffer fromValue(const T& value) {
         Buffer buffer;
         buffer.write(value);
@@ -37,7 +37,7 @@ public:
     void write(const Buffer& buffer);
     void write(Buffer&& buffer);
     template<typename T,
-             typename std::enable_if_t<std::is_fundamental<T>::value>* = nullptr>
+             typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
     void write(const T& data) { writeRaw(&data, sizeof(data)); }
 
     inline void writeRaw(const void* ptr, size_t sz) { m_sso.allocate_copy(sz, static_cast<const uint8_t*>(ptr)); }

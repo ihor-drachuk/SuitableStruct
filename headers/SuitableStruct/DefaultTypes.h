@@ -14,6 +14,7 @@
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 class QByteArray;
 class QString;
+class QPoint;
 template <typename T> class QVector;
 template <typename T> class QList;
 template <class Key, class T> class QMap;
@@ -22,18 +23,19 @@ template <class Key, class T> class QMap;
 namespace SuitableStruct {
 
 template<typename T,
-         typename std::enable_if_t<std::is_fundamental<T>::value>* = nullptr>
+         typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
 Buffer ssSaveImpl(T value)
 {
     return Buffer::fromValue(value);
 }
 
 template<typename T,
-         typename std::enable_if_t<std::is_fundamental<T>::value>* = nullptr>
+         typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
 void ssLoadImpl(BufferReader& buffer, T& value)
 {
     buffer.read(value);
 }
+
 
 template<typename T> struct IsContainer : public std::false_type { };
 template<typename T> struct IsAssociativeContainer : public std::false_type { };
@@ -41,6 +43,7 @@ template<typename T> struct IsAssociativeContainer : public std::false_type { };
 
 Buffer ssSaveImpl(const std::string& value);
 void ssLoadImpl(BufferReader& buffer, std::string& value);
+
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 template<typename... Args> struct IsContainer<QVector<Args...>> : public std::true_type { };
@@ -51,6 +54,8 @@ Buffer ssSaveImpl(const QByteArray& value);
 void ssLoadImpl(BufferReader& buffer, QByteArray& value);
 Buffer ssSaveImpl(const QString& value);
 void ssLoadImpl(BufferReader& buffer, QString& value);
+Buffer ssSaveImpl(const QPoint& value);
+void ssLoadImpl(BufferReader& buffer, QPoint& value);
 
 template<template<typename, typename...> typename C, typename T, typename... Args,
          typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
