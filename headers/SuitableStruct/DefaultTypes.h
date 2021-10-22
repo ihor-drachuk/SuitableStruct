@@ -9,6 +9,7 @@
 #include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/Exceptions.h>
 
+#include <optional>
 #include <string>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
@@ -34,6 +35,30 @@ template<typename T,
 void ssLoadImpl(BufferReader& buffer, T& value)
 {
     buffer.read(value);
+}
+
+template<typename T>
+Buffer ssSaveImpl(const std::optional<T>& value)
+{
+    Buffer result;
+    result.write(value.has_value());
+
+    if (value.has_value())
+        ssSave(value.value(), false);
+
+    return result;
+}
+
+template<typename T>
+void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
+{
+    bool hasValue;
+    ssLoadImpl(buffer, hasValue);
+
+    if (hasValue) {
+        value.emplace();
+        ssLoad(buffer, *value, false);
+    }
 }
 
 
