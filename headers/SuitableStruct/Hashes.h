@@ -88,7 +88,7 @@ uint32_t ssHash(const T& value)
 #define SS_HASHES(STRUCT) \
     inline unsigned int qHash(const STRUCT& s, unsigned int seed = 0) \
     { \
-        return SuitableStruct::combineHash(ssHashImpl(s), seed); \
+        return SuitableStruct::combineHash(SuitableStruct::ssHashImpl(s), seed); \
     } \
      \
     namespace std { \
@@ -97,7 +97,7 @@ uint32_t ssHash(const T& value)
     { \
         std::size_t operator()(const STRUCT& k) const \
         { \
-            return ssHashImpl(k); \
+            return SuitableStruct::ssHashImpl(k); \
         } \
     }; \
     } /*namespace std*/
