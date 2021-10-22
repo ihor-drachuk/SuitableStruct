@@ -8,8 +8,7 @@ namespace {
 struct Struct_v0
 {
     int a {};
-
-    using ssVersions = std::tuple<Struct_v0>;
+    //using ssVersions = std::tuple<Struct_v0>;
 };
 } // namespace
 
