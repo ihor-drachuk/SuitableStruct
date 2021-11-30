@@ -44,7 +44,7 @@ Buffer ssSaveImpl(const std::optional<T>& value)
     result.write(value.has_value());
 
     if (value.has_value())
-        ssSave(value.value(), false);
+        result += ssSave(value.value(), false);
 
     return result;
 }

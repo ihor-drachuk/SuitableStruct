@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/Comparisons.h>
+#include <optional>
 
 using namespace SuitableStruct;
 
@@ -20,8 +21,9 @@ struct SomeStruct2
 {
     SomeStruct1 struct1;
     float c {};
+    std::optional<int> d;
 
-    auto ssTuple() const { return std::tie(struct1, c); }
+    auto ssTuple() const { return std::tie(struct1, c, d); }
 };
 
 SS_COMPARISONS(SomeStruct2);
@@ -36,6 +38,7 @@ TEST(SuitableStruct, SerializationTest)
     value1.struct1.a = 1;
     value1.struct1.b = "sdfsdf";
     value1.c = 2.5;
+    value1.d = 150;
 
     SomeStruct2 value2;
     ASSERT_NE(value1, value2);
