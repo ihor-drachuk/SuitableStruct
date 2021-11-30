@@ -3,6 +3,7 @@
 #include <limits>
 #include <cstdint>
 #include <iterator>
+#include <SuitableStruct/FwdDeclarations.h>
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Helpers.h>
 #include <SuitableStruct/Handlers.h>

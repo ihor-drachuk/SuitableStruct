@@ -4,6 +4,7 @@
 #include <tuple>
 #include <memory>
 #include <limits>
+#include <SuitableStruct/FwdDeclarations.h>
 #include <SuitableStruct/Buffer.h>
 #include <SuitableStruct/DefaultTypes.h>
 #include <SuitableStruct/Helpers.h>
@@ -96,10 +97,6 @@ std::optional<uint8_t> ssVersion()
 {
     return 0;
 }
-
-// ssSave. Forward
-template<typename T>
-Buffer ssSave(const T& obj, bool protectedMode = true);
 
 // ssSave. Implementation for tuple
 template<size_t I = 0, typename... Args,
