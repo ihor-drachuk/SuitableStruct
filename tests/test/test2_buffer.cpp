@@ -55,3 +55,22 @@ TEST(SuitableStruct, BufferTest)
     bufferTester<LongSSO<>::getSsoLimit() * 2>();
     bufferTester<10>();
 }
+
+TEST(SuitableStruct, BufferTest_getBuffer)
+{
+    const char strHello[] = "Hello";
+    Buffer buf(strHello, 5);
+    BufferReader reader(buf, 1);
+
+    char tmp;
+    reader.read(tmp);
+    ASSERT_EQ(tmp, 'e');
+
+    auto buf1 = reader.bufferSrc();
+    auto buf2 = reader.bufferMapped();
+    auto buf3 = reader.bufferRest();
+
+    ASSERT_EQ(buf1, Buffer::fromConstChar("Hello"));
+    ASSERT_EQ(buf2, Buffer::fromConstChar("ello"));
+    ASSERT_EQ(buf3, Buffer::fromConstChar("llo"));
+}

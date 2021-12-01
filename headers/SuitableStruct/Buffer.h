@@ -7,6 +7,8 @@
 class QByteArray;
 #endif
 
+static_assert (sizeof(char) == sizeof(uint8_t), "Buffer constructor (const char*, size) is wrong!");
+
 namespace SuitableStruct {
 
 class Buffer
@@ -15,9 +17,14 @@ public:
     inline Buffer() = default;
     inline Buffer(size_t size) { m_sso.allocate_copy(size); }
     inline Buffer(const uint8_t* data, size_t size) { m_sso.allocate_copy(size, data); }
+    inline Buffer(const char* data, size_t size): Buffer(reinterpret_cast<const uint8_t*>(data), size) {}
     inline Buffer(const Buffer& rhs) = default;
     inline Buffer(Buffer&& rhs) = default;
     inline ~Buffer() = default;
+
+    [[nodiscard]] static Buffer fromConstChar(const char* str) {
+        return Buffer(str, strlen(str));
+    }
 
     template<typename T,
              typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
@@ -29,8 +36,8 @@ public:
 
     Buffer& operator= (const Buffer& rhs) = default;
     Buffer& operator= (Buffer&& rhs) = default;
-    bool operator== (const Buffer& rhs);
-    bool operator!= (const Buffer& rhs);
+    bool operator== (const Buffer& rhs) const;
+    bool operator!= (const Buffer& rhs) const;
     Buffer& operator+= (const Buffer& rhs);
     Buffer& operator+= (Buffer&& rhs);
 

@@ -7,12 +7,12 @@
 
 namespace SuitableStruct {
 
-bool Buffer::operator==(const Buffer& rhs)
+bool Buffer::operator==(const Buffer& rhs) const
 {
     return m_sso == rhs.m_sso;
 }
 
-bool Buffer::operator!=(const Buffer& rhs)
+bool Buffer::operator!=(const Buffer& rhs) const
 {
     return !(*this == rhs);
 }

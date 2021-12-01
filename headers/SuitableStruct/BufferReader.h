@@ -34,7 +34,10 @@ public:
         assert(position() <= size());
     }
 
-    inline const Buffer& buffer() const { return m_buffer; }
+    inline const Buffer& bufferSrc() const { return m_buffer; }
+    inline Buffer bufferMapped() const { return Buffer(cdataSrc(), size()); }
+    inline Buffer bufferRest() const { return Buffer(cdata(), rest()); }
+
     inline size_t offsetStart() const { return m_offsetStart; };
     inline size_t offsetEnd() const { return m_offsetEnd.value_or(m_buffer.size()); }
 
@@ -44,6 +47,10 @@ public:
 
     inline size_t seek(size_t pos) { assert(pos <= size()); m_offset = pos; return m_offset; };
     inline size_t advance(int64_t delta) { assert((int64_t)m_offset + delta >= 0); return seek(m_offset + delta); }
+    inline void resetPosition() { m_offset = 0; }
+
+    inline const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
+    inline const uint8_t* cdataSrc() const { return dataSrc(); }
 
     inline const uint8_t* data() const { return m_buffer.data() + m_offsetStart + m_offset; }
     inline const uint8_t* cdata() const { return data(); }

@@ -59,6 +59,8 @@ void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
     if (hasValue) {
         value.emplace();
         ssLoad(buffer, *value, false);
+    } else { // Just precaution
+        value.reset();
     }
 }
 
