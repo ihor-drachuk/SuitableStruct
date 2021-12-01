@@ -20,7 +20,7 @@ public:
     }
 
     inline LongSSO(const LongSSO& rhs) {
-        *this = rhs;
+        allocate_copy(rhs.size(), rhs.cdata());
     }
 
     inline LongSSO(LongSSO&& rhs) {
