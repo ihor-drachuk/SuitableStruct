@@ -8,7 +8,7 @@ FILE(GLOB_RECURSE SOURCES src/*.cpp src/*.h headers/*.h)
 
 add_library(SuitableStruct STATIC ${SOURCES})
 target_include_directories(SuitableStruct PUBLIC headers)
-set_property(TARGET SuitableStruct PROPERTY CXX_STANDARD 17)
+target_compile_features(SuitableStruct PUBLIC cxx_std_17)
 
 find_package(Qt5 QUIET OPTIONAL_COMPONENTS Core)
 
