@@ -157,7 +157,7 @@ Buffer ssSave(const T& obj, bool protectedMode)
         ssWriteVersion<T>(part);
         part += ssSaveImpl(obj);
 
-        static_assert (sizeof(part.hash() == sizeof(uint32_t)), "Make sure save & load expect same type!");
+        static_assert (sizeof(part.hash()) == sizeof(uint32_t), "Make sure save & load expect same type!");
         result.write((uint64_t)part.size());
         result.write(part.hash());
         result += part;
