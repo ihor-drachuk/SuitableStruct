@@ -60,7 +60,6 @@ public:
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
     QByteArray toQByteArray() const;
-    QByteArray toQByteArrayRef() const;
 
     [[nodiscard]] static Buffer fromQByteArray(const QByteArray& buffer);
 #endif

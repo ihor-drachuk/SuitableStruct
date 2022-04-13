@@ -57,11 +57,6 @@ QByteArray Buffer::toQByteArray() const
     return QByteArray(reinterpret_cast<const char*>(cdata()), size());
 }
 
-QByteArray Buffer::toQByteArrayRef() const
-{
-    return QByteArray::fromRawData(reinterpret_cast<const char*>(cdata()), size());
-}
-
 Buffer Buffer::fromQByteArray(const QByteArray& buffer)
 {
     return Buffer(reinterpret_cast<const uint8_t*>(buffer.constData()), buffer.size());
