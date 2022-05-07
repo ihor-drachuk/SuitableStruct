@@ -1,14 +1,9 @@
-#include <SuitableStruct/Exceptions.h>
+#include <SuitableStruct/Internals/Exceptions.h>
 
 #include <stdexcept>
 
 namespace SuitableStruct {
 namespace Internal {
-
-void throwTooMany()
-{
-    throw std::runtime_error("Can't load! Too many items!");
-}
 
 void throwTooLarge()
 {

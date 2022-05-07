@@ -1,4 +1,4 @@
-#include <SuitableStruct/DefaultTypes.h>
+#include <SuitableStruct/Internals/DefaultTypes.h>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QByteArray>

@@ -1,7 +1,7 @@
 #pragma once
 #include <tuple>
 #include <utility>
-#include <SuitableStruct/Helpers.h>
+#include <SuitableStruct/Internals/Helpers.h>
 
 namespace SuitableStructInternal {
 

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Swap.h>
 #include <SuitableStruct/Comparisons.h>
+#include <SuitableStruct/Internals/DefaultTypes.h>
 
 using namespace SuitableStruct;
-
 
 struct SomeStruct1
 {

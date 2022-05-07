@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <type_traits>
-#include <SuitableStruct/LongSSO.h>
+#include <SuitableStruct/Internals/LongSSO.h>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 class QByteArray;

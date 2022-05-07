@@ -1,4 +1,4 @@
-#include <SuitableStruct/LongSSO.h>
+#include <SuitableStruct/Internals/LongSSO.h>
 
 namespace SuitableStruct {
 

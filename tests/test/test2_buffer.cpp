@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <SuitableStruct/Buffer.h>
-#include <SuitableStruct/BufferReader.h>
+#include <SuitableStruct/Internals/BufferReader.h>
 
 using namespace SuitableStruct;
 

@@ -3,12 +3,12 @@
 #include <limits>
 #include <cstdint>
 #include <iterator>
-#include <SuitableStruct/FwdDeclarations.h>
-#include <SuitableStruct/BufferReader.h>
-#include <SuitableStruct/Helpers.h>
+#include <SuitableStruct/Internals/FwdDeclarations.h>
+#include <SuitableStruct/Internals/BufferReader.h>
+#include <SuitableStruct/Internals/Helpers.h>
+#include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Handlers.h>
 #include <SuitableStruct/Serializer.h>
-#include <SuitableStruct/Exceptions.h>
 
 #include <optional>
 #include <string>
@@ -17,10 +17,8 @@
 class QByteArray;
 class QString;
 class QPoint;
-template <typename T> class QVector;
-template <typename T> class QList;
-template <class Key, class T> class QMap;
-#endif
+#include <QtContainerFwd>
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 namespace SuitableStruct {
 
@@ -68,15 +66,24 @@ void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
 template<typename T> struct IsContainer : public std::false_type { };
 template<typename T> struct IsAssociativeContainer : public std::false_type { };
 
+template<typename T, typename std::enable_if<can_size<T>::value>::type* = nullptr>
+size_t containerSize(const T& container) { return container.size(); }
+
+template<typename T, typename std::enable_if<!can_size<T>::value>::type* = nullptr>
+size_t containerSize(const T& container) { return std::distance(container.begin(), container.end()); }
+
+template<typename T>
+struct ContainerInserter { static auto get(T& x) { return std::back_inserter(x); } };
 
 Buffer ssSaveImpl(const std::string& value);
 void ssLoadImpl(BufferReader& buffer, std::string& value);
 
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
-template<typename... Args> struct IsContainer<QVector<Args...>> : public std::true_type { };
+template<typename Arg> struct IsContainer<QVector<Arg>> : public std::true_type { };
 template<typename... Args> struct IsContainer<QList<Args...>> : public std::true_type { };
 template<typename... Args> struct IsAssociativeContainer<QMap<Args...>> : public std::true_type { };
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 Buffer ssSaveImpl(const QByteArray& value);
 void ssLoadImpl(BufferReader& buffer, QByteArray& value);
@@ -85,12 +92,12 @@ void ssLoadImpl(BufferReader& buffer, QString& value);
 Buffer ssSaveImpl(const QPoint& value);
 void ssLoadImpl(BufferReader& buffer, QPoint& value);
 
-template<template<typename, typename...> typename C, typename T, typename... Args,
-         typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
-Buffer ssSaveImpl (const C<T,Args...>& value)
+template<typename C>
+Buffer ssSaveContainerImpl (const C& value)
 {
     Buffer result;
-    result.write((uint64_t)value.size());
+    auto size = containerSize(value);
+    result.write(static_cast<uint64_t>(size));
 
     for (const auto& x : value)
         result += ssSave(x, false);
@@ -100,27 +107,50 @@ Buffer ssSaveImpl (const C<T,Args...>& value)
 
 template<template<typename, typename...> typename C, typename T, typename... Args,
          typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
-void ssLoadImpl (BufferReader& buffer, C<T,Args...>& value)
+Buffer ssSaveImpl (const C<T,Args...>& value)
 {
-    using Size = decltype (value.size());
+    return ssSaveContainerImpl(value);
+}
+
+template<template<typename, size_t> typename C, typename T, size_t N,
+         typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
+Buffer ssSaveImpl (const C<T,N>& value)
+{
+    return ssSaveContainerImpl(value);
+}
+
+template<typename C>
+void ssLoadContainerImpl (BufferReader& buffer, C& value)
+{
+    using T = typename C::value_type;
 
     uint64_t sz;
     buffer.read(sz);
 
-    if (sz > std::numeric_limits<Size>::max())
-        Internal::throwTooMany();
+    C result;
+    auto sIt = ContainerInserter<C>::get(result);
 
-    C<T,Args...> result;
-    auto sIt = std::back_inserter(result);
-
-    for (Size i = 0; i < sz; i++) {
+    for (uint64_t i = 0; i < sz; i++) {
         T item;
         ssLoad(buffer, item, false);
-        *sIt = std::move(item);
+        *sIt++ = std::move(item);
     }
 
     value = std::move(result);
 }
-#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
+template<template<typename, typename...> typename C, typename T, typename... Args,
+         typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
+void ssLoadImpl (BufferReader& buffer, C<T,Args...>& value)
+{
+    ssLoadContainerImpl(buffer, value);
+}
+
+template<template<typename, size_t> typename C, typename T, size_t N,
+         typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
+void ssLoadImpl (BufferReader& buffer, C<T,N>& value)
+{
+    ssLoadContainerImpl(buffer, value);
+}
 
 } // namespace SuitableStruct

@@ -1,6 +1,6 @@
-#include <SuitableStruct/BufferReader.h>
+#include <SuitableStruct/Internals/BufferReader.h>
+#include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Hashes.h>
-#include <SuitableStruct/Exceptions.h>
 
 namespace SuitableStruct {
 

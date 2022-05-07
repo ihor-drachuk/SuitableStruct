@@ -3,7 +3,6 @@
 namespace SuitableStruct {
 namespace Internal {
 
-void throwTooMany();
 void throwTooLarge();
 void throwIntegrity();
 void throwOutOfRange();

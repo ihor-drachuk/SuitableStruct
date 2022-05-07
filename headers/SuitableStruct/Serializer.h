@@ -4,20 +4,18 @@
 #include <tuple>
 #include <memory>
 #include <limits>
-#include <SuitableStruct/FwdDeclarations.h>
+#include <SuitableStruct/Internals/FwdDeclarations.h>
+#include <SuitableStruct/Internals/DefaultTypes.h>
+#include <SuitableStruct/Internals/Helpers.h>
+#include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Buffer.h>
-#include <SuitableStruct/DefaultTypes.h>
-#include <SuitableStruct/Helpers.h>
 #include <SuitableStruct/Handlers.h>
-#include <SuitableStruct/Exceptions.h>
 
 
 // Features:
 //   - Serialization / deserialization for structures
 //   - Data integrity validation
-//   - Hashing
 //   - Versioning
-//   - Copy-and-swap helper
 
 // TODO:
 //  - SSO-replacement for std::optional
