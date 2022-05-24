@@ -22,6 +22,10 @@ public:
     inline Buffer(Buffer&& rhs) = default;
     inline ~Buffer() = default;
 
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+    Buffer(const QByteArray& buffer);
+#endif
+
     [[nodiscard]] static Buffer fromConstChar(const char* str) {
         return Buffer(str, strlen(str));
     }
@@ -60,8 +64,7 @@ public:
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
     QByteArray toQByteArray() const;
-
-    [[nodiscard]] static Buffer fromQByteArray(const QByteArray& buffer);
+    [[nodiscard]] static Buffer fromQByteArray(const QByteArray& buffer) { return Buffer(buffer); }
 #endif
 
 private:

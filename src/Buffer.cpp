@@ -7,6 +7,13 @@
 
 namespace SuitableStruct {
 
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+Buffer::Buffer(const QByteArray& buffer)
+    : Buffer(reinterpret_cast<const uint8_t*>(buffer.constData()), buffer.size())
+{
+}
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
 bool Buffer::operator==(const Buffer& rhs) const
 {
     return m_sso == rhs.m_sso;
@@ -55,11 +62,6 @@ uint32_t Buffer::hash() const
 QByteArray Buffer::toQByteArray() const
 {
     return QByteArray(reinterpret_cast<const char*>(cdata()), size());
-}
-
-Buffer Buffer::fromQByteArray(const QByteArray& buffer)
-{
-    return Buffer(reinterpret_cast<const uint8_t*>(buffer.constData()), buffer.size());
 }
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
