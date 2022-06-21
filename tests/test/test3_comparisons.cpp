@@ -23,6 +23,19 @@ struct B
 
 SS_COMPARISONS(B);
 
+struct AB : A, B
+{
+    int value4 {};
+
+    auto ssLocalTuple() const { return std::tie(value4); }
+    auto ssTuple() const { return std::tuple_cat(
+        static_cast<const A*>(this)->ssTuple(),
+        static_cast<const B*>(this)->ssTuple(),
+        ssLocalTuple());
+    }
+    SS_COMPARISONS_MEMBER(AB);
+};
+
 } // namespace
 
 
@@ -70,4 +83,9 @@ TEST(SuitableStruct, ComparisonsTest)
     ASSERT_TRUE  (b1 <= b2);
     ASSERT_FALSE (b1 >  b2);
     ASSERT_TRUE  (b1 >= b2);
+
+    // AB
+    AB ab1, ab2;
+    ASSERT_TRUE  (b1 == b2);
+    ASSERT_FALSE (b1 != b2);
 }
