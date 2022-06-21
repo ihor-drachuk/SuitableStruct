@@ -83,7 +83,6 @@ void ssLoadImpl(BufferReader& buffer, std::string& value);
 template<typename Arg> struct IsContainer<QVector<Arg>> : public std::true_type { };
 template<typename... Args> struct IsContainer<QList<Args...>> : public std::true_type { };
 template<typename... Args> struct IsAssociativeContainer<QMap<Args...>> : public std::true_type { };
-#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 Buffer ssSaveImpl(const QByteArray& value);
 void ssLoadImpl(BufferReader& buffer, QByteArray& value);
@@ -91,6 +90,7 @@ Buffer ssSaveImpl(const QString& value);
 void ssLoadImpl(BufferReader& buffer, QString& value);
 Buffer ssSaveImpl(const QPoint& value);
 void ssLoadImpl(BufferReader& buffer, QPoint& value);
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 template<typename C>
 Buffer ssSaveContainerImpl (const C& value)
