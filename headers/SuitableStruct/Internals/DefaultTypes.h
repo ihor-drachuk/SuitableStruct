@@ -153,4 +153,20 @@ void ssLoadImpl (BufferReader& buffer, C<T,N>& value)
     ssLoadContainerImpl(buffer, value);
 }
 
+template<typename... Args>
+Buffer ssSaveImpl (const std::tuple<Args...>& value)
+{
+    Buffer result;
+    auto saver = [&result](const auto& x){ result += ssSave(x, false); };
+    std::apply([&saver](const auto&... xs){ (saver(xs), ...); }, value);
+    return result;
+}
+
+template<typename... Args>
+void ssLoadImpl (BufferReader& buffer, std::tuple<Args...>& value)
+{
+    auto loader = [&buffer](auto& x){ ssLoad(buffer, x, false); };
+    std::apply([&loader](auto&... xs){ (loader(xs), ...); }, value);
+}
+
 } // namespace SuitableStruct

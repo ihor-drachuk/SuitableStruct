@@ -99,16 +99,16 @@ std::optional<uint8_t> ssVersion()
 // ssSave. Implementation for tuple
 template<size_t I = 0, typename... Args,
          typename std::enable_if<I == sizeof...(Args)>::type* = nullptr>
-void ssSaveImpl(Buffer&, const std::tuple<Args...>&)
+void ssSaveImplViaTuple(Buffer&, const std::tuple<Args...>&)
 {
 }
 
 template<size_t I = 0, typename... Args,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
-void ssSaveImpl(Buffer& buffer, const std::tuple<Args...>& args)
+void ssSaveImplViaTuple(Buffer& buffer, const std::tuple<Args...>& args)
 {
     buffer += ssSave(std::get<I>(args), false);
-    ssSaveImpl<I+1>(buffer, args);
+    ssSaveImplViaTuple<I+1>(buffer, args);
 }
 
 // ssSave.  1) Method
@@ -140,7 +140,7 @@ template<typename T,
 Buffer ssSaveImpl(const T& obj)
 {
     Buffer buf;
-    ssSaveImpl(buf, obj.ssTuple());
+    ssSaveImplViaTuple(buf, obj.ssTuple());
     return buf;
 }
 
@@ -171,16 +171,16 @@ Buffer ssSave(const T& obj, bool protectedMode)
 // ssLoad. Implementation for tuple
 template<size_t I = 0, typename... Args,
          typename std::enable_if<I == sizeof...(Args)>::type* = nullptr>
-void ssLoadImpl(BufferReader&, std::tuple<Args...>&)
+void ssLoadImplViaTuple(BufferReader&, std::tuple<Args...>&)
 {
 }
 
 template<size_t I = 0, typename... Args,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
-void ssLoadImpl(BufferReader& buffer, std::tuple<Args...>& args)
+void ssLoadImplViaTuple(BufferReader& buffer, std::tuple<Args...>& args)
 {
     ssLoad(buffer, std::get<I>(args), false);
-    ssLoadImpl<I+1>(buffer, args);
+    ssLoadImplViaTuple<I+1>(buffer, args);
 }
 
 // ssLoad.  1) Method
@@ -211,7 +211,7 @@ template<typename T,
              >::type* = nullptr>
 void ssLoadImpl(BufferReader& buf, T& obj)
 {
-    ssLoadImpl(buf, const_cast_tuple(obj.ssTuple()));
+    ssLoadImplViaTuple(buf, const_cast_tuple(obj.ssTuple()));
 }
 
 //-----------

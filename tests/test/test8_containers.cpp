@@ -33,9 +33,8 @@ struct Struct1
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
     auto ssTuple() const { return std::tie(a, b, c); }
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
 };
-
-SS_COMPARISONS_ONLY_EQ(Struct1);
 
 struct Struct2
 {
@@ -52,9 +51,16 @@ struct Struct2
     std::unordered_multiset<int> i;
 
     auto ssTuple() const { return std::tie(first, a, b, c, d, e, f, g, h, i); }
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct2);
 };
 
-SS_COMPARISONS_ONLY_EQ(Struct2);
+struct Struct3
+{
+    std::tuple<int, float, Struct2> value;
+
+    auto ssTuple() const { return std::tie(value); }
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct3);
+};
 
 TEST(SuitableStruct, ContainersTest)
 {
@@ -79,4 +85,17 @@ TEST(SuitableStruct, ContainersTest)
     ssLoad(buf, a2);
 
     ASSERT_EQ(a1, a2);
+}
+
+TEST(SuitableStruct, TupleTest)
+{
+    Struct3 value1, value2;
+    auto& [a, b, c] = value1.value;
+    a = 1;
+    b = 2.34;
+    c.d = {1,2,3};
+
+    auto buf = ssSave(value1);
+    ssLoad(buf, value2);
+    ASSERT_EQ(value1, value2);
 }
