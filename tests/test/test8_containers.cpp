@@ -15,6 +15,7 @@
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QList>
 #include <QVector>
+#include <QStringList>
 #include <SuitableStruct/Containers/QSet.h>
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
@@ -26,13 +27,15 @@ struct Struct1
     QList<int> a;
     QVector<int> b;
     QSet<int> c;
+    QStringList d;
 #else
     int a {};
     int b {};
     int c {};
+    int d {};
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
-    auto ssTuple() const { return std::tie(a, b, c); }
+    auto ssTuple() const { return std::tie(a, b, c, d); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
 };
 
@@ -67,9 +70,9 @@ TEST(SuitableStruct, ContainersTest)
     Struct2 a1, a2;
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
-    a1.first = {{{1},{2},{3}}};
+    a1.first = {{{1},{2},{3},{"4"}}};
 #else
-    a1.first = {{1,2,3}};
+    a1.first = {{1,2,3,4}};
 #endif
 
     a1.b = {2, 22};

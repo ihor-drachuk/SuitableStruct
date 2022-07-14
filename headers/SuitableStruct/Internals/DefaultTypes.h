@@ -14,10 +14,13 @@
 #include <string>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+#include <QtContainerFwd>
 class QByteArray;
 class QString;
 class QPoint;
-#include <QtContainerFwd>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+class QStringList;
+#endif // QT_VERSION
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 namespace SuitableStruct {
@@ -80,8 +83,9 @@ void ssLoadImpl(BufferReader& buffer, std::string& value);
 
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
-template<typename Arg> struct IsContainer<QVector<Arg>> : public std::true_type { };
+template<typename Arg>     struct IsContainer<QVector<Arg>> : public std::true_type { };
 template<typename... Args> struct IsContainer<QList<Args...>> : public std::true_type { };
+template<>                 struct IsContainer<QStringList> : public std::true_type { };
 template<typename... Args> struct IsAssociativeContainer<QMap<Args...>> : public std::true_type { };
 
 Buffer ssSaveImpl(const QByteArray& value);
@@ -105,9 +109,9 @@ Buffer ssSaveContainerImpl (const C& value)
     return result;
 }
 
-template<template<typename, typename...> typename C, typename T, typename... Args,
-         typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
-Buffer ssSaveImpl (const C<T,Args...>& value)
+template<typename C,
+         typename std::enable_if_t<IsContainer<C>::value>* = nullptr>
+Buffer ssSaveImpl (const C& value)
 {
     return ssSaveContainerImpl(value);
 }
@@ -139,9 +143,9 @@ void ssLoadContainerImpl (BufferReader& buffer, C& value)
     value = std::move(result);
 }
 
-template<template<typename, typename...> typename C, typename T, typename... Args,
-         typename std::enable_if_t<IsContainer<C<T,Args...>>::value>* = nullptr>
-void ssLoadImpl (BufferReader& buffer, C<T,Args...>& value)
+template<typename C,
+         typename std::enable_if_t<IsContainer<C>::value>* = nullptr>
+void ssLoadImpl (BufferReader& buffer, C& value)
 {
     ssLoadContainerImpl(buffer, value);
 }
