@@ -12,6 +12,7 @@
 
 #include <optional>
 #include <string>
+#include <memory>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QtContainerFwd>
@@ -65,6 +66,57 @@ void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
     }
 }
 
+template<typename T>
+Buffer ssSaveImpl(const std::shared_ptr<T>& value)
+{
+    Buffer result;
+    result.write(!!value);
+
+    if (value)
+        result += ssSave(*value, false);
+
+    return result;
+}
+
+template<typename T>
+void ssLoadImpl(BufferReader& buffer, std::shared_ptr<T>& value)
+{
+    bool hasValue;
+    ssLoadImpl(buffer, hasValue);
+
+    if (hasValue) {
+        value = std::make_shared<T>();
+        ssLoad(buffer, *value, false);
+    } else { // Just precaution
+        value.reset();
+    }
+}
+
+template<typename T>
+Buffer ssSaveImpl(const std::unique_ptr<T>& value)
+{
+    Buffer result;
+    result.write(!!value);
+
+    if (value)
+        result += ssSave(*value, false);
+
+    return result;
+}
+
+template<typename T>
+void ssLoadImpl(BufferReader& buffer, std::unique_ptr<T>& value)
+{
+    bool hasValue;
+    ssLoadImpl(buffer, hasValue);
+
+    if (hasValue) {
+        value = std::make_unique<T>();
+        ssLoad(buffer, *value, false);
+    } else { // Just precaution
+        value.reset();
+    }
+}
 
 template<typename T> struct IsContainer : public std::false_type { };
 template<typename T> struct IsAssociativeContainer : public std::false_type { };

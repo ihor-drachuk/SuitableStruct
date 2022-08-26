@@ -23,8 +23,9 @@ struct SomeStruct2
 {
     SomeStruct1 struct1;
     float c {};
+    std::shared_ptr<int> d;
 
-    auto ssTuple() const { return std::tie(struct1, c); }
+    auto ssTuple() const { return std::tie(struct1, c, d); }
 
     // For test
     bool operator==(const SomeStruct2& rhs) const { return (ssTuple() == rhs.ssTuple()); }
@@ -42,6 +43,8 @@ TEST(SuitableStruct, HashesTest)
     auto h1 = ssHash(s2);
     auto h2 = ssHash(s2);
     ASSERT_EQ(h1, h2);
+
+    ssHash(std::make_shared<int>(15));
 
     std::unordered_set<SomeStruct2> set;
     set.insert(s2);

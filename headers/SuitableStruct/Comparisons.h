@@ -2,6 +2,7 @@
 #include <tuple>
 #include <cmath>
 #include <numeric>
+#include <memory>
 
 /*
   Fast way to add all comparison operators for custom struct.
@@ -43,6 +44,13 @@
   SS_COMPARISONS_EQ(My_Struct); // Only: ==, !=
 */
 
+template<typename T>
+int ssThreeWayCompare(const T& a, const T& b)
+{
+    return (a > b) ?  1 :
+           (a < b) ? -1 :
+                      0;
+}
 
 namespace SuitableStructInternal {
 
@@ -50,9 +58,7 @@ template<typename Struct, typename T>
 typename std::enable_if<!std::is_floating_point<T>::value, int>::type
 inline compare(const Struct&, T a, T b)
 {
-    return (a > b) ? 1 :
-           (a < b) ? -1 :
-                     0;
+    return ssThreeWayCompare(a, b);
 }
 
 /*
@@ -89,6 +95,36 @@ compare(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>& t
 
     return result ? result :
                     compare<Struct, I + 1, Tp...>(s, t1, t2);
+}
+
+template<typename Struct, typename T>
+inline int compare(const Struct& s, const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
+{
+    if (a && b) {
+        return compare(s, *a, *b);
+    } else {
+        return a ?  1 :
+               b ? -1 :
+                    0;
+    }
+}
+
+template<typename Struct, typename T>
+inline int compare(const Struct& s, const std::unique_ptr<T>& a, const std::unique_ptr<T>& b)
+{
+    if (a && b) {
+        return compare(s, *a, *b);
+    } else {
+        return a ?  1 :
+               b ? -1 :
+                    0;
+    }
+}
+
+template<typename Struct, typename T>
+inline int compare(const Struct& s, const std::weak_ptr<T>& weakA, const std::weak_ptr<T>& weakB)
+{
+    return compare(s, weakA.lock(), weakB.lock());
 }
 
 template<typename Struct, typename... Tp>

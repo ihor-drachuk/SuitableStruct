@@ -26,8 +26,9 @@ SS_COMPARISONS(B);
 struct AB : A, B
 {
     int value4 {};
+    std::shared_ptr<int> value5;
 
-    auto ssLocalTuple() const { return std::tie(value4); }
+    auto ssLocalTuple() const { return std::tie(value4, value5); }
     auto ssTuple() const { return std::tuple_cat(
         static_cast<const A*>(this)->ssTuple(),
         static_cast<const B*>(this)->ssTuple(),
