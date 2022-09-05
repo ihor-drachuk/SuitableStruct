@@ -1,5 +1,7 @@
 #include <SuitableStruct/Hashes.h>
 
+#include <cassert>
+
 namespace SuitableStruct {
 
 uint32_t ssHashRaw(const void* ptr, size_t sz)

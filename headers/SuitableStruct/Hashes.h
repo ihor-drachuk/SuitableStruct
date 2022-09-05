@@ -1,5 +1,8 @@
 #pragma once
-#include <SuitableStruct/Serializer.h>
+#include <SuitableStruct/Handlers.h>
+#include <SuitableStruct/Internals/Helpers.h>
+#include <cstdint>
+#include <type_traits>
 
 
 namespace SuitableStruct {
