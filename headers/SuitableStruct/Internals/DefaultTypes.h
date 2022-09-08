@@ -16,6 +16,10 @@
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QtContainerFwd>
+#include <QJsonValue>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QMetaEnum>
 class QByteArray;
 class QString;
 class QPoint;
@@ -226,3 +230,262 @@ void ssLoadImpl (BufferReader& buffer, std::tuple<Args...>& value)
 }
 
 } // namespace SuitableStruct
+
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+
+namespace SuitableStruct {
+
+template<typename T,
+         typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+QJsonValue ssJsonSaveImpl(T value)
+{
+    if (value <= std::numeric_limits<T>::max()) {
+        return static_cast<int>(value);
+    } else {
+        return QString::number(value);
+    }
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+void ssJsonLoadImpl(const QJsonValue& src, T& dst)
+{
+    if (src.isDouble()) {
+        dst = qRound(src.toDouble());
+    } else if (src.isString()) {
+        dst = src.toString().toLongLong();
+    } else {
+        assert(!"Unexpected type!");
+    }
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+QJsonValue ssJsonSaveImpl(T value)
+{
+    return value;
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_floating_point_v<T>>* = nullptr>
+void ssJsonLoadImpl(const QJsonValue& src, T& dst)
+{
+    assert(src.isDouble());
+    dst = src.toDouble();
+}
+
+QJsonValue ssJsonSaveImpl(QChar value);
+void ssJsonLoadImpl(const QJsonValue& src, QChar& dst);
+
+QJsonValue ssJsonSaveImpl(const QString& value);
+void ssJsonLoadImpl(const QJsonValue& src, QString& dst);
+
+QJsonValue ssJsonSaveImpl(const QByteArray& value);
+void ssJsonLoadImpl(const QJsonValue& src, QByteArray& dst);
+
+QJsonValue ssJsonSaveImpl(const std::string& value);
+void ssJsonLoadImpl(const QJsonValue& src, std::string& dst);
+
+QJsonValue ssJsonSaveImpl(const QPoint& value);
+void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst);
+
+template<typename T,
+         typename std::enable_if_t<std::is_enum_v<T> && QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
+QJsonValue ssJsonSaveImpl(T value)
+{
+    const auto metaenum = QMetaEnum::fromType<T>();
+    assert(metaenum.isValid());
+    auto str = metaenum.valueToKey(static_cast<int>(value));
+    return str ? QJsonValue(str) :
+                 ssJsonSaveImpl(static_cast<int64_t>(value));
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_enum_v<T> && !QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
+QJsonValue ssJsonSaveImpl(T value)
+{
+    return ssJsonSaveImpl(static_cast<int64_t>(value));
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_enum_v<T> && QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
+void ssJsonLoadImpl(const QJsonValue& src, T& dst)
+{
+    const auto metaenum = QMetaEnum::fromType<T>();
+    assert(metaenum.isValid());
+
+    if (src.isString()) {
+        QString value;
+        bool ok;
+        ssJsonLoadImpl(src, value);
+        auto result = metaenum.keyToValue(value.toLatin1().constData(), &ok);
+
+        if (ok) {
+            dst = static_cast<T>(result);
+        } else {
+            int64_t value2;
+            ssJsonLoadImpl(src, value2);
+            dst = static_cast<T>(value2);
+        }
+
+    } else if (src.isDouble()) {
+        int64_t value;
+        ssJsonLoadImpl(src, value);
+        dst = static_cast<T>(value);
+
+    } else {
+        assert(!"Unexpected type!");
+    }
+}
+
+template<typename T,
+         typename std::enable_if_t<std::is_enum_v<T> && !QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
+void ssJsonLoadImpl(const QJsonValue& src, T& dst)
+{
+    int64_t value;
+    ssJsonLoadImpl(src, value);
+    dst = static_cast<T>(value);
+}
+
+template<typename C>
+QJsonValue ssJsonSaveContainerImpl (const C& value)
+{
+    QJsonArray result;
+
+    for (const auto& x : value)
+        result += ssJsonSave(x, false);
+
+    return result;
+}
+
+template<typename C,
+         typename std::enable_if_t<IsContainer<C>::value>* = nullptr>
+QJsonValue ssJsonSaveImpl (const C& value)
+{
+    return ssJsonSaveContainerImpl(value);
+}
+
+template<template<typename, size_t> typename C, typename T, size_t N,
+         typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
+QJsonValue ssJsonSaveImpl (const C<T,N>& value)
+{
+    return ssJsonSaveContainerImpl(value);
+}
+
+template<typename C>
+void ssJsonLoadContainerImpl (const QJsonValue& value, C& result)
+{
+    assert(value.isArray());
+
+    using T = typename C::value_type;
+    using Size = decltype(value.toArray().size());
+
+    const auto arr = value.toArray();
+
+    C temp;
+    auto sIt = ContainerInserter<C>::get(temp);
+    Size sz = arr.size();
+
+    for (Size i = 0; i < sz; i++) {
+        T item;
+        ssJsonLoad(arr.at(i), item, false);
+        *sIt++ = std::move(item);
+    }
+
+    result = std::move(temp);
+}
+
+template<typename C,
+         typename std::enable_if_t<IsContainer<C>::value>* = nullptr>
+void ssJsonLoadImpl (const QJsonValue& value, C& result)
+{
+    ssJsonLoadContainerImpl(value, result);
+}
+
+template<template<typename, size_t> typename C, typename T, size_t N,
+         typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
+void ssJsonLoadImpl (const QJsonValue& value, C<T,N>& result)
+{
+    ssJsonLoadContainerImpl(value, result);
+}
+
+template<typename... Args>
+QJsonValue ssJsonSaveImpl (const std::tuple<Args...>& value)
+{
+    QJsonArray result;
+    auto saver = [&result](const auto& x){ result += ssJsonSave(x, false); };
+    std::apply([&saver](const auto&... xs){ (saver(xs), ...); }, value);
+    return result;
+}
+
+template<typename... Args>
+void ssJsonLoadImpl (const QJsonValue& value, std::tuple<Args...>& result)
+{
+    assert(value.isArray());
+    const auto arr = value.toArray();
+    auto it = arr.cbegin();
+    auto loader = [&value, &it](auto& x){ ssJsonLoad(*it++, x, false); };
+    std::apply([&loader](auto&... xs){ (loader(xs), ...); }, result);
+}
+
+template<template<typename...> typename SmartPtr, typename T, typename... Args>
+QJsonValue ssJsonSaveSmartPtrImpl(const SmartPtr<T, Args...>& value)
+{
+    QJsonObject obj;
+    obj["hasValue"] = !!value;
+
+    if (value) {
+        obj["content"] = ssJsonSave(*value, false);
+    }
+
+    return obj;
+}
+
+template<template<typename...> typename SmartPtr, typename T, typename... Args>
+void ssJsonLoadSmartPtrImpl(const QJsonValue& src, SmartPtr<T, Args...>& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    assert(obj.contains("hasValue") && obj["hasValue"].isBool());
+    const auto hasValue = obj["hasValue"].toBool();
+
+    if (hasValue) {
+        assert(obj.contains("content"));
+        SmartPtr<T, Args...> temp (new T);
+        ssJsonLoad(obj["content"], *temp, false);
+        dst = std::move(temp);
+
+    } else {
+        dst.reset();
+    }
+}
+
+template<typename T>
+void ssJsonLoadSmartPtrImpl(const QJsonValue& src, std::optional<T>& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    assert(obj.contains("hasValue") && obj["hasValue"].isBool());
+    const auto hasValue = obj["hasValue"].toBool();
+
+    if (hasValue) {
+        assert(obj.contains("content"));
+        dst.emplace();
+        ssJsonLoad(obj["content"], *dst, false);
+
+    } else {
+        dst.reset();
+    }
+}
+
+template<typename... Ts> QJsonValue ssJsonSaveImpl(const std::unique_ptr<Ts...>& value) { return ssJsonSaveSmartPtrImpl(value); }
+template<typename... Ts> void ssJsonLoadImpl(const QJsonValue& src, std::unique_ptr<Ts...>& dst) { ssJsonLoadSmartPtrImpl(src, dst); }
+template<typename... Ts> QJsonValue ssJsonSaveImpl(const std::shared_ptr<Ts...>& value) { return ssJsonSaveSmartPtrImpl(value); }
+template<typename... Ts> void ssJsonLoadImpl(const QJsonValue& src, std::shared_ptr<Ts...>& dst) { ssJsonLoadSmartPtrImpl(src, dst); }
+template<typename... Ts> QJsonValue ssJsonSaveImpl(const std::optional<Ts...>& value) { return ssJsonSaveSmartPtrImpl(value); }
+template<typename... Ts> void ssJsonLoadImpl(const QJsonValue& src, std::optional<Ts...>& dst) { ssJsonLoadSmartPtrImpl(src, dst); }
+
+} // namespace SuitableStruct
+
+#endif // #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY

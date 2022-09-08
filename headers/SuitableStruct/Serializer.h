@@ -8,6 +8,7 @@
 #include <SuitableStruct/Internals/DefaultTypes.h>
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Internals/Exceptions.h>
+#include <SuitableStruct/Internals/Version.h>
 #include <SuitableStruct/Buffer.h>
 #include <SuitableStruct/Handlers.h>
 
@@ -23,28 +24,12 @@
 namespace SuitableStruct {
 
 // Versions
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && std::is_class_v<T>>::type* = nullptr>
+template<typename T>
 void ssWriteVersion(Buffer& buf)
 {
-    buf.write((uint8_t)0);
+    if (const auto ver = ssVersion<T>())
+        buf.write(*ver);
 };
-
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && !std::is_class_v<T>>::type* = nullptr>
-void ssWriteVersion(Buffer&)
-{
-    // Nothing.
-};
-
-template<typename T,
-         typename std::enable_if<has_ssVersions_v<T>>::type* = nullptr>
-void ssWriteVersion(Buffer& buf)
-{
-    constexpr auto verIndex = tuple_type_index<typename T::ssVersions, T>::value;
-    static_assert (verIndex >= 0, "Something wrong with version detection");
-    buf.write((uint8_t)verIndex);
-}
 
 template<typename T,
          typename std::enable_if<!has_ssVersions_v<T> && !std::is_class_v<T>>::type* = nullptr>
@@ -67,33 +52,6 @@ std::optional<uint8_t> ssReadVersion(BufferReader& buf)
     uint8_t result;
     buf.read(result);
     return result;
-}
-
-template<typename T>
-struct SSVersionDirect
-{
-    static constexpr auto version = std::tuple_size_v<typename T::ssVersions> - 1;
-};
-
-template<typename T,
-         typename std::enable_if<has_ssVersions_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
-{
-    return std::tuple_size_v<typename T::ssVersions> - 1;
-}
-
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && !std::is_class_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
-{
-    return {};
-}
-
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && std::is_class_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
-{
-    return 0;
 }
 
 // ssSave. Implementation for tuple

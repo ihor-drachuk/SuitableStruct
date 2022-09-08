@@ -21,7 +21,7 @@ struct Handlers<Struct_v0> : public std::true_type
     static void ssLoadImpl(BufferReader& buffer, Struct_v0& value) { buffer.read(value.a); }
     static uint32_t ssHashImpl(const Struct_v0& v) { return v.a; };
 };
-} // namespace
+} // namespace SuitableStruct
 
 
 namespace {

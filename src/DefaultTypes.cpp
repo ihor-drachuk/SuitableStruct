@@ -4,6 +4,7 @@
 #include <QByteArray>
 #include <QString>
 #include <QPoint>
+#include <QJsonObject>
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 namespace SuitableStruct {
@@ -68,6 +69,74 @@ void ssLoadImpl(BufferReader& buffer, QPoint& value)
 {
     ssLoadImpl(buffer, value.rx());
     ssLoadImpl(buffer, value.ry());
+}
+
+QJsonValue ssJsonSaveImpl(QChar value)
+{
+    return QString(value);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QChar& dst)
+{
+    assert(src.toString().length() == 1);
+    dst = src.toString().at(0);
+}
+
+QJsonValue ssJsonSaveImpl(const QString& value)
+{
+    return value;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QString& dst)
+{
+    dst = src.toString();
+}
+
+QJsonValue ssJsonSaveImpl(const QByteArray& value)
+{
+    const auto result = QString::fromLatin1(value.toHex());
+    return result.isEmpty() ? result : ("0x" + result);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QByteArray& dst)
+{
+    assert(src.isString());
+    const auto str = src.toString();
+
+    if (str.isEmpty()) {
+        dst.clear();
+        return;
+    }
+
+    assert(str.mid(0, 2) == "0x");
+    dst = QByteArray::fromHex(str.mid(2).toLatin1());
+}
+
+QJsonValue ssJsonSaveImpl(const std::string& value)
+{
+    return QString::fromStdString(value);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, std::string& dst)
+{
+    assert(src.isString());
+    dst = src.toString().toStdString();
+}
+
+QJsonValue ssJsonSaveImpl(const QPoint& value)
+{
+    QJsonObject obj;
+    obj["x"] = ssJsonSaveImpl(value.x());
+    obj["y"] = ssJsonSaveImpl(value.y());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    ssJsonLoadImpl(obj["x"], dst.rx());
+    ssJsonLoadImpl(obj["y"], dst.ry());
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

@@ -1,0 +1,1 @@
+#include <SuitableStruct/SerializerJson.h>
