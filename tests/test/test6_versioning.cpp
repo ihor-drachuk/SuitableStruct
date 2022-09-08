@@ -34,12 +34,10 @@ struct Struct_v1
 
     using ssVersions = std::tuple<Struct_v0, Struct_v1>;
     void ssConvertFrom(const Struct_v0& prev) { a = prev.a; b = 0; }
+    SS_COMPARISONS_MEMBER(Struct_v1);
 };
-SS_COMPARISONS(Struct_v1);
-} // namespace
 
 
-namespace {
 struct Struct_v2
 {
     int a {};
@@ -49,9 +47,25 @@ struct Struct_v2
     using ssVersions = std::tuple<Struct_v0, Struct_v1, Struct_v2>;
     auto ssTuple() const { return std::tie(a, b, c); }
     void ssConvertFrom(const Struct_v1& prev) { a = prev.a; b = prev.b; c = "Q"; }
+    SS_COMPARISONS_MEMBER(Struct_v2);
 };
 
-SS_COMPARISONS(Struct_v2);
+
+using Struct = Struct_v2;
+
+struct NestedTest_Old_Helper
+{
+    Struct_v0 s;
+    auto ssTuple() const { return std::tie(s); }
+};
+
+struct NestedTest
+{
+    Struct s;
+
+    auto ssTuple() const { return std::tie(s); }
+    SS_COMPARISONS_MEMBER(NestedTest);
+};
 } // namespace
 
 
@@ -140,4 +154,20 @@ TEST(SuitableStruct, VersioningTest_2_to_2)
     ssLoad(buf, v2r);
 
     ASSERT_EQ(v2r, v2);
+}
+
+TEST(SuitableStruct, VersioningTest_Nested_0_to_2)
+{
+    NestedTest_Old_Helper v;
+    v.s.a = 17;
+
+    auto buf = ssSave(v);
+
+    NestedTest v2;
+    ssLoad(buf, v2);
+
+    NestedTest v2ref;
+    v2ref.s = {17, 0, "Q"};
+
+    ASSERT_EQ(v2, v2ref);
 }
