@@ -176,6 +176,33 @@ compare_eq(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>
                     result;
 }
 
+
+template<typename Struct, typename T>
+inline bool compare_eq(const Struct& s, const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
+{
+    if (a && b) {
+        return compare_eq(s, *a, *b);
+    } else {
+        return (!a && !b);
+    }
+}
+
+template<typename Struct, typename T>
+inline bool compare_eq(const Struct& s, const std::unique_ptr<T>& a, const std::unique_ptr<T>& b)
+{
+    if (a && b) {
+        return compare_eq(s, *a, *b);
+    } else {
+        return (!a && !b);
+    }
+}
+
+template<typename Struct, typename T>
+inline bool compare_eq(const Struct& s, const std::weak_ptr<T>& weakA, const std::weak_ptr<T>& weakB)
+{
+    return compare_eq(s, weakA.lock(), weakB.lock());
+}
+
 template<typename Struct, typename... Tp>
 inline bool compareTuplesEq(const Struct& s, const std::tuple<Tp...>& lhs, const std::tuple<Tp...>& rhs)
 {
