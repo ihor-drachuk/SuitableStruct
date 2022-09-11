@@ -41,18 +41,18 @@ struct Struct1
     short a{};
     long b{};
     QString c;
-    Enum1 e1;
-    Test9_CustomEnum::Enum2 e2;
-    Test9_CustomEnum::Enum2 e3;
+    Enum1 e1{};
+    Test9_CustomEnum::Enum2 e2{};
+    Test9_CustomEnum::Enum2 e3{};
     QByteArray f;
     double g{};
     QChar h;
     QPoint k;
     std::string l;
-    std::vector<int> m;       // #include <SuitableStruct/Containers/vector.h>
-    std::list<std::string> n; // #include <SuitableStruct/Containers/list.h>
-    std::array<double, 5> o;  // #include <SuitableStruct/Containers/array.h>
-    std::tuple<int, std::string> p;
+    std::vector<int> m;         // #include <SuitableStruct/Containers/vector.h>
+    std::list<std::string> n;   // #include <SuitableStruct/Containers/list.h>
+    std::array<double, 5> o{};  // #include <SuitableStruct/Containers/array.h>
+    std::tuple<int, std::string> p {};
     std::shared_ptr<int> q;
     std::unique_ptr<int> r;
     std::optional<int> s1, s2;

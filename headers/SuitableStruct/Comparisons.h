@@ -56,7 +56,7 @@ namespace SuitableStructInternal {
 
 template<typename Struct, typename T>
 typename std::enable_if<!std::is_floating_point<T>::value, int>::type
-inline compare(const Struct&, T a, T b)
+inline compare(const Struct&, const T& a, const T& b)
 {
     return ssThreeWayCompare(a, b);
 }
@@ -139,7 +139,7 @@ inline int compareTuples(const Struct& s, const std::tuple<Tp...>& lhs, const st
 
 template<typename Struct, typename T>
 typename std::enable_if<!std::is_floating_point<T>::value, bool>::type
-inline compare_eq(const Struct&, T a, T b)
+inline compare_eq(const Struct&, const T& a, const T& b)
 {
     return (a == b);
 }

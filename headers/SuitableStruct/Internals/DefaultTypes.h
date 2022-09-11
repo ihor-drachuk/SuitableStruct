@@ -424,7 +424,7 @@ void ssJsonLoadImpl (const QJsonValue& value, std::tuple<Args...>& result)
 {
     assert(value.isArray());
     const auto arr = value.toArray();
-    auto it = arr.cbegin();
+    auto it = arr.begin();
     auto loader = [&value, &it](auto& x){ ssJsonLoad(*it++, x, false); };
     std::apply([&loader](auto&... xs){ (loader(xs), ...); }, result);
 }

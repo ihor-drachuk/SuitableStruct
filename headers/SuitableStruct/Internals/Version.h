@@ -17,7 +17,7 @@ template<typename T,
          typename std::enable_if<has_ssVersions_v<T>>::type* = nullptr>
 std::optional<uint8_t> ssVersion()
 {
-    return std::tuple_size_v<typename T::ssVersions> - 1;
+    return static_cast<uint8_t>(std::tuple_size_v<typename T::ssVersions> - 1);
 }
 
 template<typename T,

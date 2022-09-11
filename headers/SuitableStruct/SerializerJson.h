@@ -106,13 +106,13 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode)
 // ssJsonLoad. Implementation for tuple
 template<size_t I = 0, typename... Args, typename... Args2,
          typename std::enable_if<I == sizeof...(Args)>::type* = nullptr>
-void ssJsonLoadImplViaTuple(const QJsonObject&, std::tuple<Args...>&, std::tuple<Args2...>&)
+void ssJsonLoadImplViaTuple(const QJsonObject&, std::tuple<Args...>&, const std::tuple<Args2...>&)
 {
 }
 
 template<size_t I = 0, typename... Args, typename... Args2,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
-void ssJsonLoadImplViaTuple(const QJsonObject& value, std::tuple<Args...>& args, std::tuple<Args2...>& names)
+void ssJsonLoadImplViaTuple(const QJsonObject& value, std::tuple<Args...>& args, const std::tuple<Args2...>& names)
 {
     ssJsonLoad(value[std::get<I>(names)], std::get<I>(args), false);
     ssJsonLoadImplViaTuple<I+1>(value, args, names);
@@ -243,7 +243,7 @@ void ssJsonLoadAndConvert(const QJsonValue& value, T& obj, const std::optional<u
 }
 
 template<typename T>
-void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode = true)
+void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode)
 {
     QJsonValue content;
 

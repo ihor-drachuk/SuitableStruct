@@ -1,6 +1,7 @@
 #pragma once
 #include <tuple>
 #include <type_traits>
+#include <functional>
 
 namespace SuitableStruct {
 

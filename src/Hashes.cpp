@@ -1,6 +1,7 @@
 #include <SuitableStruct/Hashes.h>
 
 #include <cassert>
+#include <cstddef>
 
 namespace SuitableStruct {
 
