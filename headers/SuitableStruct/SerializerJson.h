@@ -29,6 +29,7 @@ template<size_t I = 0, typename... Args, typename... Args2,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
 void ssJsonSaveImplViaTuple(QJsonObject& value, const std::tuple<Args...>& args, const std::tuple<Args2...>& names)
 {
+    static_assert(sizeof...(Args) == sizeof...(Args2), "Mismatching args/names size! (Check ssTuple and ssNamesTuple)");
     value[std::get<I>(names)] = ssJsonSave(std::get<I>(args), false);
     ssJsonSaveImplViaTuple<I+1>(value, args, names);
 }
@@ -114,6 +115,7 @@ template<size_t I = 0, typename... Args, typename... Args2,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
 void ssJsonLoadImplViaTuple(const QJsonObject& value, std::tuple<Args...>& args, const std::tuple<Args2...>& names)
 {
+    static_assert(sizeof...(Args) == sizeof...(Args2), "Mismatching args/names size! (Check ssTuple and ssNamesTuple)");
     ssJsonLoad(value[std::get<I>(names)], std::get<I>(args), false);
     ssJsonLoadImplViaTuple<I+1>(value, args, names);
 }

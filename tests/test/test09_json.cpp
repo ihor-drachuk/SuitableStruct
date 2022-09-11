@@ -41,12 +41,14 @@ struct Struct1
     short a{};
     long b{};
     QString c;
+    // missing d
     Enum1 e1{};
     Test9_CustomEnum::Enum2 e2{};
     Test9_CustomEnum::Enum2 e3{};
     QByteArray f;
     double g{};
     QChar h;
+    // missing i, j
     QPoint k;
     std::string l;
     std::vector<int> m;         // #include <SuitableStruct/Containers/vector.h>
@@ -66,7 +68,8 @@ struct Struct1
 
 TEST(SuitableStruct, JsonSerialization)
 {
-    Struct1 a, b;
+    const Struct1 empty;
+    Struct1 a, b, c;
     ASSERT_EQ(a, b);
 
     a.a = 10;
@@ -89,12 +92,31 @@ TEST(SuitableStruct, JsonSerialization)
     a.s1 = 14;
     a.s2 = {};
 
-    ASSERT_NE(a, b);
+    ASSERT_NE(b, a);
     auto saved = ssJsonSave(a);
     ssJsonLoad(saved, b);
 
-    ASSERT_EQ(a, b);
-    ASSERT_NE(a.q.get(), b.q.get());
+    ASSERT_EQ(b, a);
+    ASSERT_NE(b.q.get(), a.q.get());
+
+    { // Integrity tests
+        auto valueRoot = saved.toObject(); // content, hash
+        auto valueContent1 = valueRoot["content"].toObject(); // content, version
+        auto valueContent2 = valueContent1["content"].toObject(); // a, b, c, ...
+        valueContent2["a"] = a.a + 1;
+        valueContent1["content"] = valueContent2;
+        valueRoot["content"] = valueContent1;
+        auto saved2 = QJsonValue(valueRoot);
+        ASSERT_THROW(ssJsonLoad(saved2, c), std::runtime_error);
+        ASSERT_EQ(c, empty);
+
+        valueContent2["a"] = a.a;
+        valueContent1["content"] = valueContent2;
+        valueRoot["content"] = valueContent1;
+        saved2 = QJsonValue(valueRoot);
+        ssJsonLoad(saved2, c);
+        ASSERT_EQ(c, a);
+    }
 }
 
 #include "test09_json.moc"

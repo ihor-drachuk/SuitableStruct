@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - dev
+      - wip
   pull_request:
     types: [opened, edited, synchronize]
 
@@ -12,13 +13,17 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04, macos-10.15, windows-2019, windows-2022]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-10.15, macos-11, macos-12, windows-2019, windows-2022]
         build_type: [Release, Debug]
-        use_qt: [yes]
+        use_qt: [yes, no]
+        exclude:
+            - os: macos-12
+              build_type: Release
+
 
     runs-on: ${{ matrix.os }}
     if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
     - name: "Set OS-specific values (Linux)"
@@ -86,12 +91,26 @@ jobs:
         modules: qtcharts qtdatavis3d qtpurchasing qtvirtualkeyboard qtwebengine qtnetworkauth qtwebglplugin qtscript
         cache: ${{ steps.cache-qt.outputs.cache-hit }}
         setup-python: false
-        
-    - name: Install Qt (Linux)
-      if: ${{ matrix.use_qt == 'yes' && runner.os == 'Linux' }}
+
+    - name: Install Qt (Linux, 18.04 or 20.04)
+      if: ${{ (matrix.use_qt == 'yes' && matrix.os == 'ubuntu-18.04') || (matrix.use_qt == 'yes' && matrix.os == 'ubuntu-20.04') }}
       shell: bash
       run: |
-       sudo apt-get install qt5-default qtdeclarative5-dev
+       sudo add-apt-repository ppa:savoury1/qt-5-15     -n --yes
+       sudo add-apt-repository ppa:savoury1/kde-5-80    -n --yes
+       sudo add-apt-repository ppa:savoury1/gpg         -n --yes
+       sudo add-apt-repository ppa:savoury1/ffmpeg4     -n --yes
+       sudo add-apt-repository ppa:savoury1/vlc3        -n --yes
+       sudo add-apt-repository ppa:savoury1/display     -n --yes
+       sudo add-apt-repository ppa:savoury1/gtk-xenial  -n --yes
+       sudo apt-get update
+       sudo apt-get install qt*5-dev cmake -y
+
+    - name: Install Qt (Linux, 22.04)
+      if: ${{ matrix.use_qt == 'yes' && matrix.os == 'ubuntu-22.04' }}
+      shell: bash
+      run: |
+       sudo apt-get install qt*5-dev cmake -y
 
     - name: "Add Qt to PATH"
       if: ${{ matrix.use_qt == 'yes' && runner.os != 'Linux' }}
@@ -110,4 +129,4 @@ jobs:
       run: |
        cmake ${{env.QML_TESTS}} -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" ${{env.MSVC_ARCH}} -G "${{env.GENERATOR}}" -S "${{github.workspace}}/src" -B "${{github.workspace}}/build"
        cmake --build "${{github.workspace}}/build" --config "${{matrix.build_type}}" -j "${{env.CORES}}"
-       ctest --rerun-failed --output-on-failure --timeout 20 -C "${{matrix.build_type}}" --test-dir "${{github.workspace}}/build/tests"
+       ctest --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}" --test-dir "${{github.workspace}}/build/tests"

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Comparisons.h>
 #include <memory>
+#include <optional>
 
 namespace {
 
@@ -8,10 +9,8 @@ struct A
 {
     int value {};
     auto ssTuple() const { return std::tie(value); }
+    SS_COMPARISONS_MEMBER(A);
 };
-
-SS_COMPARISONS(A);
-
 
 struct B
 {
@@ -20,9 +19,8 @@ struct B
     float value3 {};
 
     auto ssTuple() const { return std::tie(a, value2, value3); }
+    SS_COMPARISONS_MEMBER(B);
 };
-
-SS_COMPARISONS(B);
 
 struct AB : A, B
 {

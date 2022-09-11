@@ -5,7 +5,7 @@ FILE(GLOB_RECURSE SOURCES *.cpp)
 set(PROJECT_TEST_NAME test-${PROJECT_NAME})
 
 add_executable(${PROJECT_TEST_NAME} ${SOURCES})
-set_property(TARGET ${PROJECT_TEST_NAME} PROPERTY CXX_STANDARD 17)
+target_compile_features(${PROJECT_TEST_NAME} PRIVATE cxx_std_17)
 
 target_link_libraries(${PROJECT_TEST_NAME} gtest gmock_main ${PROJECT_NAME})
 
