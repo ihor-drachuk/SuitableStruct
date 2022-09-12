@@ -54,13 +54,6 @@ int ssThreeWayCompare(const T& a, const T& b)
 
 namespace SuitableStructInternal {
 
-template<typename Struct, typename T>
-typename std::enable_if<!std::is_floating_point<T>::value, int>::type
-inline compare(const Struct&, const T& a, const T& b)
-{
-    return ssThreeWayCompare(a, b);
-}
-
 /*
 template<typename Struct>
 inline int compare(const Struct&, const char* a, const char* b)
@@ -68,6 +61,13 @@ inline int compare(const Struct&, const char* a, const char* b)
     return (a == b) ? 0 : strcmp(a, b);
 }
 */
+
+template<typename Struct, typename T>
+typename std::enable_if<!std::is_floating_point<T>::value, int>::type
+inline compare(const Struct&, const T& a, const T& b)
+{
+    return ssThreeWayCompare(a, b);
+}
 
 template <typename Struct, typename T>
 typename std::enable_if<std::is_floating_point<T>::value, int>::type
@@ -78,23 +78,6 @@ inline compare(const Struct&, T a, T b)
     } else {
         return (a > b) ? 1 : -1;
     }
-}
-
-template<typename Struct, std::size_t I = 0, typename... Tp>
-inline typename std::enable_if<I == sizeof...(Tp), int>::type
-compare(const Struct&, const std::tuple<Tp...>&, const std::tuple<Tp...>&)
-{
-    return 0;
-}
-
-template<typename Struct, std::size_t I = 0, typename... Tp>
-inline typename std::enable_if<I < sizeof...(Tp), int>::type
-compare(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>& t2)
-{
-    auto result = compare(s, std::get<I>(t1), std::get<I>(t2));
-
-    return result ? result :
-                    compare<Struct, I + 1, Tp...>(s, t1, t2);
 }
 
 template<typename Struct, typename T>
@@ -127,22 +110,33 @@ inline int compare(const Struct& s, const std::weak_ptr<T>& weakA, const std::we
     return compare(s, weakA.lock(), weakB.lock());
 }
 
+template<typename Struct, std::size_t I = 0, typename... Tp>
+inline typename std::enable_if<I == sizeof...(Tp), int>::type
+compare(const Struct&, const std::tuple<Tp...>&, const std::tuple<Tp...>&)
+{
+    return 0;
+}
+
+template<typename Struct, std::size_t I = 0, typename... Tp>
+inline typename std::enable_if<I < sizeof...(Tp), int>::type
+compare(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>& t2)
+{
+    auto result = compare(s, std::get<I>(t1), std::get<I>(t2));
+
+    return result ? result :
+                    compare<Struct, I + 1, Tp...>(s, t1, t2);
+}
+
 template<typename Struct, typename... Tp>
 inline int compareTuples(const Struct& s, const std::tuple<Tp...>& lhs, const std::tuple<Tp...>& rhs)
 {
     return compare(s, lhs, rhs);
 }
 
+
 //
 // Eq-only
 //
-
-template<typename Struct, typename T>
-typename std::enable_if<!std::is_floating_point<T>::value, bool>::type
-inline compare_eq(const Struct&, const T& a, const T& b)
-{
-    return (a == b);
-}
 
 /*
 template<typename Struct>
@@ -152,30 +146,19 @@ inline bool compare_eq(const Struct&, const char* a, const char* b)
 }
 */
 
+template<typename Struct, typename T>
+typename std::enable_if<!std::is_floating_point<T>::value, bool>::type
+inline compare_eq(const Struct&, const T& a, const T& b)
+{
+    return (a == b);
+}
+
 template <typename Struct, typename T>
 typename std::enable_if<std::is_floating_point<T>::value, bool>::type
 inline compare_eq(const Struct&, T a, T b)
 {
     return (std::fabs(a - b) <= std::numeric_limits<T>::epsilon());
 }
-
-template<typename Struct, std::size_t I = 0, typename... Tp>
-inline typename std::enable_if<I == sizeof...(Tp), bool>::type
-compare_eq(const Struct&, const std::tuple<Tp...>&, const std::tuple<Tp...>&)
-{
-    return true;
-}
-
-template<typename Struct, std::size_t I = 0, typename... Tp>
-inline typename std::enable_if<I < sizeof...(Tp), bool>::type
-compare_eq(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>& t2)
-{
-    auto result = compare_eq(s, std::get<I>(t1), std::get<I>(t2));
-
-    return result ? compare_eq<Struct, I + 1, Tp...>(s, t1, t2) :
-                    result;
-}
-
 
 template<typename Struct, typename T>
 inline bool compare_eq(const Struct& s, const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
@@ -201,6 +184,23 @@ template<typename Struct, typename T>
 inline bool compare_eq(const Struct& s, const std::weak_ptr<T>& weakA, const std::weak_ptr<T>& weakB)
 {
     return compare_eq(s, weakA.lock(), weakB.lock());
+}
+
+template<typename Struct, std::size_t I = 0, typename... Tp>
+inline typename std::enable_if<I == sizeof...(Tp), bool>::type
+compare_eq(const Struct&, const std::tuple<Tp...>&, const std::tuple<Tp...>&)
+{
+    return true;
+}
+
+template<typename Struct, std::size_t I = 0, typename... Tp>
+inline typename std::enable_if<I < sizeof...(Tp), bool>::type
+compare_eq(const Struct& s, const std::tuple<Tp...>& t1, const std::tuple<Tp...>& t2)
+{
+    auto result = compare_eq(s, std::get<I>(t1), std::get<I>(t2));
+
+    return result ? compare_eq<Struct, I + 1, Tp...>(s, t1, t2) :
+                    result;
 }
 
 template<typename Struct, typename... Tp>

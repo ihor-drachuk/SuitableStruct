@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Comparisons.h>
+#include <memory>
 
 namespace {
 
@@ -35,6 +36,14 @@ struct AB : A, B
         ssLocalTuple());
     }
     SS_COMPARISONS_MEMBER(AB);
+};
+
+template<typename SmartType>
+struct SP
+{
+    SmartType value;
+    auto ssTuple() const { return std::tie(value); }
+    SS_COMPARISONS_MEMBER(SP);
 };
 
 } // namespace
@@ -89,4 +98,68 @@ TEST(SuitableStruct, ComparisonsTest)
     AB ab1, ab2;
     ASSERT_TRUE  (b1 == b2);
     ASSERT_FALSE (b1 != b2);
+}
+
+TEST(SuitableStruct, ComparisonsTest_shared_ptr)
+{
+    SP<std::shared_ptr<int>> a, b;
+    ASSERT_EQ(a, b);
+
+    a.value = std::make_shared<int>(1);
+    ASSERT_NE(a, b);
+
+    b.value = std::make_shared<int>(2);
+    ASSERT_NE(a, b);
+
+    *a.value = 2;
+    ASSERT_EQ(a, b);
+}
+
+TEST(SuitableStruct, ComparisonsTest_unique_ptr)
+{
+    SP<std::unique_ptr<int>> a, b;
+    ASSERT_EQ(a, b);
+
+    a.value = std::make_unique<int>(1);
+    ASSERT_NE(a, b);
+
+    b.value = std::make_unique<int>(2);
+    ASSERT_NE(a, b);
+
+    *a.value = 2;
+    ASSERT_EQ(a, b);
+}
+
+TEST(SuitableStruct, ComparisonsTest_weak_ptr)
+{
+    std::shared_ptr<int> v1, v2;
+    v1 = std::make_shared<int>(1);
+    v2 = std::make_shared<int>(2);
+
+    SP<std::weak_ptr<int>> a, b;
+    ASSERT_EQ(a, b);
+
+    a.value = v1;
+    ASSERT_NE(a, b);
+
+    b.value = v2;
+    ASSERT_NE(a, b);
+
+    *v1 = 2;
+    ASSERT_EQ(a, b);
+}
+
+TEST(SuitableStruct, ComparisonsTest_optional)
+{
+    SP<std::optional<int>> a, b;
+    ASSERT_EQ(a, b);
+
+    a.value = 1;
+    ASSERT_NE(a, b);
+
+    b.value = 2;
+    ASSERT_NE(a, b);
+
+    a.value = 2;
+    ASSERT_EQ(a, b);
 }
