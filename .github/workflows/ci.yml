@@ -92,6 +92,12 @@ jobs:
         cache: ${{ steps.cache-qt.outputs.cache-hit }}
         setup-python: false
 
+    - name: "Add Qt to PATH"
+      if: ${{ matrix.use_qt == 'yes' && runner.os != 'Linux' }}
+      shell: bash
+      run: |
+       echo "${{github.workspace}}/qt" >> $GITHUB_PATH
+
     - name: Install Qt (Linux, 18.04 or 20.04)
       if: ${{ (matrix.use_qt == 'yes' && matrix.os == 'ubuntu-18.04') || (matrix.use_qt == 'yes' && matrix.os == 'ubuntu-20.04') }}
       shell: bash
@@ -111,12 +117,6 @@ jobs:
       shell: bash
       run: |
        sudo apt-get install qt*5-dev cmake -y
-
-    - name: "Add Qt to PATH"
-      if: ${{ matrix.use_qt == 'yes' && runner.os != 'Linux' }}
-      shell: bash
-      run: |
-       echo "${{github.workspace}}/qt" >> $GITHUB_PATH
 
     - uses: actions/checkout@v2
       with:
