@@ -240,7 +240,9 @@ template<typename T,
          typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 QJsonValue ssJsonSaveImpl(T value)
 {
-    if (value <= std::numeric_limits<T>::max()) {
+    // Used for hash storing
+
+    if (value <= std::numeric_limits<int>::max()) {
         return static_cast<int>(value);
     } else {
         return QString::number(value);
@@ -251,12 +253,31 @@ template<typename T,
          typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 {
+    // Used for hash validation, that's why here is possibility to throw exception
+
     if (src.isDouble()) {
-        dst = qRound(src.toDouble());
+        const auto dVal = src.toDouble();
+        const auto rVal = qRound64(dVal);
+
+        if (!qFuzzyCompare(dVal, rVal)) {
+            Internal::throwIntegrity();
+            return;
+        }
+
+        if (rVal > std::numeric_limits<T>::max() ||
+            rVal < std::numeric_limits<T>::min())
+        {
+            Internal::throwOutOfRange();
+            return;
+        }
+
+        dst = rVal;
+
     } else if (src.isString()) {
         dst = src.toString().toLongLong();
+
     } else {
-        assert(!"Unexpected type!");
+        Internal::throwIntegrity();
     }
 }
 

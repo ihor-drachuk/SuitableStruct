@@ -84,14 +84,8 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode)
     }
 
     if (protectedMode) {
-        QJsonValue hashValue;
         auto hash = qHash(part1);
-
-        if (hash <= std::numeric_limits<int>::max()) {
-            hashValue = static_cast<int>(hash);
-        } else {
-            hashValue = QString::number(hash);
-        }
+        QJsonValue hashValue = ssJsonSaveImpl(hash);
 
         QJsonObject hashWrapper;
         hashWrapper["hash"] = hashValue;
@@ -260,13 +254,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode)
         const auto jsonHash = jsonObject["hash"];
 
         uint hash;
-        if (jsonHash.isDouble()) {
-            hash = qRound(jsonHash.toDouble());
-        } else if (jsonHash.isString()) {
-            hash = jsonHash.toString().toUInt();
-        } else {
-            Internal::throwIntegrity();
-        }
+        ssJsonLoadImpl(jsonHash, hash);
 
         if (hash != qHash(jsonContent))
             Internal::throwIntegrity();
