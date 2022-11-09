@@ -23,6 +23,7 @@
 class QByteArray;
 class QString;
 class QPoint;
+class QColor;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class QStringList;
 #endif // QT_VERSION
@@ -150,6 +151,8 @@ Buffer ssSaveImpl(const QString& value);
 void ssLoadImpl(BufferReader& buffer, QString& value);
 Buffer ssSaveImpl(const QPoint& value);
 void ssLoadImpl(BufferReader& buffer, QPoint& value);
+Buffer ssSaveImpl(const QColor& value);
+void ssLoadImpl(BufferReader& buffer, QColor& value);
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 template<typename C>
@@ -310,6 +313,9 @@ void ssJsonLoadImpl(const QJsonValue& src, std::string& dst);
 
 QJsonValue ssJsonSaveImpl(const QPoint& value);
 void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst);
+
+QJsonValue ssJsonSaveImpl(const QColor& value);
+void ssJsonLoadImpl(const QJsonValue& src, QColor& dst);
 
 template<typename T,
          typename std::enable_if_t<std::is_enum_v<T> && QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>

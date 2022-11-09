@@ -5,6 +5,7 @@
 #include <QString>
 #include <QPoint>
 #include <QJsonObject>
+#include <QColor>
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 namespace SuitableStruct {
@@ -69,6 +70,18 @@ void ssLoadImpl(BufferReader& buffer, QPoint& value)
 {
     ssLoadImpl(buffer, value.rx());
     ssLoadImpl(buffer, value.ry());
+}
+
+Buffer ssSaveImpl(const QColor& value)
+{
+    Buffer result;
+    result.writeRaw(&value, sizeof(value));
+    return result;
+}
+
+void ssLoadImpl(BufferReader& buffer, QColor& value)
+{
+    buffer.readRaw(&value, sizeof(value));
 }
 
 QJsonValue ssJsonSaveImpl(QChar value)
@@ -137,6 +150,135 @@ void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst)
     const auto obj = src.toObject();
     ssJsonLoadImpl(obj["x"], dst.rx());
     ssJsonLoadImpl(obj["y"], dst.ry());
+}
+
+QJsonValue ssJsonSaveImpl(const QColor& value)
+{
+    QJsonObject result;
+    result["spec"] = ssJsonSaveImpl(value.spec());
+
+    switch (value.spec()) {
+        case QColor::Spec::Invalid:
+            break;
+
+        case QColor::Spec::Rgb:
+            result["r"] = ssJsonSaveImpl(value.red());
+            result["g"] = ssJsonSaveImpl(value.green());
+            result["b"] = ssJsonSaveImpl(value.blue());
+            result["a"] = ssJsonSaveImpl(value.alpha());
+            break;
+
+        case QColor::Spec::Hsv:
+            result["h"] = ssJsonSaveImpl(value.hsvHue());
+            result["s"] = ssJsonSaveImpl(value.hsvSaturation());
+            result["v"] = ssJsonSaveImpl(value.value());
+            result["a"] = ssJsonSaveImpl(value.alpha());
+            break;
+
+        case QColor::Spec::Cmyk:
+            result["c"] = ssJsonSaveImpl(value.cyan());
+            result["m"] = ssJsonSaveImpl(value.magenta());
+            result["y"] = ssJsonSaveImpl(value.yellow());
+            result["k"] = ssJsonSaveImpl(value.black());
+            result["a"] = ssJsonSaveImpl(value.alpha());
+            break;
+
+        case QColor::Spec::Hsl:
+            result["h"] = ssJsonSaveImpl(value.hslHue());
+            result["s"] = ssJsonSaveImpl(value.hslSaturation());
+            result["l"] = ssJsonSaveImpl(value.lightness());
+            result["a"] = ssJsonSaveImpl(value.alpha());
+            break;
+
+        case QColor::Spec::ExtendedRgb: {
+            const auto rgba64 = value.rgba64();
+            result["r"] = ssJsonSaveImpl(rgba64.red());
+            result["g"] = ssJsonSaveImpl(rgba64.green());
+            result["b"] = ssJsonSaveImpl(rgba64.blue());
+            result["a"] = ssJsonSaveImpl(rgba64.alpha());
+            break;
+        }
+
+        default:
+            assert(!"Unhandled color spec!");
+    }
+
+    return result;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+
+    QColor::Spec spec;
+    ssJsonLoadImpl(obj["spec"], spec);
+
+    dst = QColor(spec);
+
+    switch (spec) {
+        case QColor::Spec::Invalid:
+            break;
+
+        case QColor::Spec::Rgb: {
+            using RgbComponent = decltype (QColor().red());
+            RgbComponent r, g, b, a;
+            ssJsonLoadImpl(obj["r"], r);
+            ssJsonLoadImpl(obj["g"], g);
+            ssJsonLoadImpl(obj["b"], b);
+            ssJsonLoadImpl(obj["a"], a);
+            dst.setRgb(r, g, b, a);
+            break;
+        }
+
+        case QColor::Spec::Hsv: {
+            using HsvComponent = decltype (QColor().hsvHue());
+            HsvComponent h, s, v, a;
+            ssJsonLoadImpl(obj["h"], h);
+            ssJsonLoadImpl(obj["s"], s);
+            ssJsonLoadImpl(obj["v"], v);
+            ssJsonLoadImpl(obj["a"], a);
+            dst.setHsv(h, s, v, a);
+            break;
+        }
+
+        case QColor::Spec::Cmyk: {
+            using CmykComponent = decltype (QColor().cyan());
+            CmykComponent c, m, y, k, a;
+            ssJsonLoadImpl(obj["c"], c);
+            ssJsonLoadImpl(obj["m"], m);
+            ssJsonLoadImpl(obj["y"], y);
+            ssJsonLoadImpl(obj["k"], k);
+            ssJsonLoadImpl(obj["a"], a);
+            dst.setCmyk(c, m, y, k, a);
+            break;
+        }
+
+        case QColor::Spec::Hsl: {
+            using HslComponent = decltype (QColor().hslHue());
+            HslComponent h, s, l, a;
+            ssJsonLoadImpl(obj["h"], h);
+            ssJsonLoadImpl(obj["s"], s);
+            ssJsonLoadImpl(obj["l"], l);
+            ssJsonLoadImpl(obj["a"], a);
+            dst.setHsl(h, s, l, a);
+            break;
+        }
+
+        case QColor::Spec::ExtendedRgb: {
+            using Rgb64Component = decltype (QColor().rgba64().red());
+            Rgb64Component r, g, b, a;
+            ssJsonLoadImpl(obj["r"], r);
+            ssJsonLoadImpl(obj["g"], g);
+            ssJsonLoadImpl(obj["b"], b);
+            ssJsonLoadImpl(obj["a"], a);
+            dst.setRgba64(QRgba64::fromRgba64(r, g, b, a));
+            break;
+        }
+
+        default:
+            assert(!"Unhandled color spec!");
+    }
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
