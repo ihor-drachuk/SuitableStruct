@@ -5,17 +5,17 @@
 namespace SuitableStruct {
 namespace Internal {
 
-void throwTooLarge()
+[[noreturn]] void throwTooLarge()
 {
     throw std::runtime_error("Can't load! Buffer is too large!");
 }
 
-void throwIntegrity()
+[[noreturn]] void throwIntegrity()
 {
     throw std::runtime_error("Integrity check failed!");
 }
 
-void throwOutOfRange()
+[[noreturn]] void throwOutOfRange()
 {
     throw std::out_of_range("Out of range");
 }

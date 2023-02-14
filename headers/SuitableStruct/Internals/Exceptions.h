@@ -3,9 +3,9 @@
 namespace SuitableStruct {
 namespace Internal {
 
-void throwTooLarge();
-void throwIntegrity();
-void throwOutOfRange();
+[[noreturn]] void throwTooLarge();
+[[noreturn]] void throwIntegrity();
+[[noreturn]] void throwOutOfRange();
 
 } // namespace Internal
 } // namespace SuitableStruct

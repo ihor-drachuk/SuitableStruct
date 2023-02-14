@@ -200,7 +200,7 @@ QJsonValue ssJsonSaveImpl(const QColor& value)
         }
 
         default:
-            assert(!"Unhandled color spec!");
+            assert(false && "Unhandled color spec!");
     }
 
     return result;
@@ -275,10 +275,9 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
             dst.setRgba64(QRgba64::fromRgba64(r, g, b, a));
             break;
         }
-
-        default:
-            assert(!"Unhandled color spec!");
     }
+
+    assert(false && "Unhandled color spec!");
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

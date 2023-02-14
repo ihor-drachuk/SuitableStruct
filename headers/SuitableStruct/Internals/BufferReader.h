@@ -12,9 +12,9 @@ class BufferReader
 public:
     // Make sure lifetime of 'buffer' is greater than 'BufferReader's.
     inline BufferReader(const Buffer& buffer,
-                        const std::optional<size_t>& offsetStart = {},
-                        const std::optional<size_t>& len = {},
-                        const std::optional<size_t>& offsetEnd = {})
+                        std::optional<size_t> offsetStart = {},
+                        std::optional<size_t> len = {},
+                        std::optional<size_t> offsetEnd = {})
         : m_buffer(buffer)
     {
         assert((!len && !offsetEnd) ||
@@ -46,7 +46,7 @@ public:
     inline size_t rest() const { return size() - position(); };
 
     inline size_t seek(size_t pos) { assert(pos <= size()); m_offset = pos; return m_offset; };
-    inline size_t advance(int64_t delta) { assert((int64_t)m_offset + delta >= 0); return seek(m_offset + delta); }
+    inline size_t advance(int64_t delta) { assert( static_cast<int64_t>(m_offset) + delta >= 0); return seek(m_offset + delta); }
     inline void resetPosition() { m_offset = 0; }
 
     inline const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
