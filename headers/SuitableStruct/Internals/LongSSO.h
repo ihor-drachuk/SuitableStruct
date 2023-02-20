@@ -81,14 +81,14 @@ public:
 
             if (limitDelta >= 0) {
                 uint8_t* target = m_buf + m_sz;
-                memcpy(target, buffer, buffer ? sz : 0); // It's 20x faster, than doing memcpy in `appendData`
+                if(buffer) memcpy(target, buffer, sz); // It's 20x faster, than doing memcpy in `appendData`
                 m_sz += sz;
                 return target;
             } else {
                 assert(sz > 0);
                 assert(limitDelta < 0);
                 auto target = makeLong(sz);
-                memcpy(target, buffer, buffer ? sz : 0);
+                if(buffer) memcpy(target, buffer, sz);
                 return target;
             }
         } else {
@@ -97,7 +97,7 @@ public:
             size_t newSz = oldSz + sz;
             m_longBuf->resize(newSz);
             uint8_t* target = m_longBuf->data() + oldSz;
-            memcpy(target, buffer, buffer ? sz : 0);
+            if(buffer) memcpy(target, buffer, sz);
             return target;
         }
     }
