@@ -23,7 +23,7 @@ public:
         allocate_copy(rhs.size(), rhs.cdata());
     }
 
-    inline LongSSO(LongSSO&& rhs) {
+    inline LongSSO(LongSSO&& rhs) noexcept {
         *this = std::move(rhs);
     }
 
@@ -41,7 +41,7 @@ public:
         return *this;
     }
 
-    inline LongSSO& operator=(LongSSO&& rhs) {
+    inline LongSSO& operator=(LongSSO&& rhs) noexcept {
         if (this == &rhs) return *this;
 
         if (m_deleteLongBuf)
