@@ -222,7 +222,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
 
         case QColor::Spec::Rgb: {
             using RgbComponent = decltype (QColor().red());
-            RgbComponent r, g, b, a;
+            RgbComponent r{}, g{}, b{}, a{};
             ssJsonLoadImpl(obj["r"], r);
             ssJsonLoadImpl(obj["g"], g);
             ssJsonLoadImpl(obj["b"], b);
@@ -233,7 +233,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
 
         case QColor::Spec::Hsv: {
             using HsvComponent = decltype (QColor().hsvHue());
-            HsvComponent h, s, v, a;
+            HsvComponent h{}, s{}, v{}, a{};
             ssJsonLoadImpl(obj["h"], h);
             ssJsonLoadImpl(obj["s"], s);
             ssJsonLoadImpl(obj["v"], v);
@@ -244,7 +244,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
 
         case QColor::Spec::Cmyk: {
             using CmykComponent = decltype (QColor().cyan());
-            CmykComponent c, m, y, k, a;
+            CmykComponent c{}, m{}, y{}, k{}, a{};
             ssJsonLoadImpl(obj["c"], c);
             ssJsonLoadImpl(obj["m"], m);
             ssJsonLoadImpl(obj["y"], y);
@@ -256,7 +256,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
 
         case QColor::Spec::Hsl: {
             using HslComponent = decltype (QColor().hslHue());
-            HslComponent h, s, l, a;
+            HslComponent h{}, s{}, l{}, a{};
             ssJsonLoadImpl(obj["h"], h);
             ssJsonLoadImpl(obj["s"], s);
             ssJsonLoadImpl(obj["l"], l);
@@ -267,7 +267,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
 
         case QColor::Spec::ExtendedRgb: {
             using Rgb64Component = decltype (QColor().rgba64().red());
-            Rgb64Component r, g, b, a;
+            Rgb64Component r{}, g{}, b{}, a{};
             ssJsonLoadImpl(obj["r"], r);
             ssJsonLoadImpl(obj["g"], g);
             ssJsonLoadImpl(obj["b"], b);

@@ -370,7 +370,7 @@ template<typename T,
          typename std::enable_if_t<std::is_enum_v<T> && !QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
 void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 {
-    int64_t value;
+    int64_t value{};
     ssJsonLoadImpl(src, value);
     dst = static_cast<T>(value);
 }
