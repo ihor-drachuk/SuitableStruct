@@ -11,7 +11,7 @@ struct SuitableStruct::ContainerInserter<std::unordered_set<Args...>>
     using value_type = typename C::value_type;
 
     static auto get(C& container) {
-        return UniversalInserter(container, [](Context& ctx, C& container, const value_type& value) {
+        return UniversalInserter(container, [](Context& /*ctx*/, C& container, const value_type& value) {
             container.insert(value);
         });
     }

@@ -144,6 +144,7 @@ template<typename Arg>     struct IsContainer<QVector<Arg>> : public std::true_t
 template<typename... Args> struct IsContainer<QList<Args...>> : public std::true_type { };
 template<>                 struct IsContainer<QStringList> : public std::true_type { };
 template<typename... Args> struct IsAssociativeContainer<QMap<Args...>> : public std::true_type { };
+template<typename... Args> struct IsAssociativeContainer<QHash<Args...>> : public std::true_type { };
 
 Buffer ssSaveImpl(const QByteArray& value);
 void ssLoadImpl(BufferReader& buffer, QByteArray& value);
@@ -175,6 +176,7 @@ Buffer ssSaveImpl (const C& value)
     return ssSaveContainerImpl(value);
 }
 
+// std::array<T, N>
 template<template<typename, size_t> typename C, typename T, size_t N,
          typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
 Buffer ssSaveImpl (const C<T,N>& value)
@@ -209,6 +211,7 @@ void ssLoadImpl (BufferReader& buffer, C& value)
     ssLoadContainerImpl(buffer, value);
 }
 
+// std::array<T, N>
 template<template<typename, size_t> typename C, typename T, size_t N,
          typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
 void ssLoadImpl (BufferReader& buffer, C<T,N>& value)
