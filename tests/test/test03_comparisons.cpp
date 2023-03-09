@@ -5,6 +5,9 @@
 
 namespace {
 
+struct SomeStruct;
+using SomeStructPtr = std::shared_ptr<SomeStruct>;
+
 struct A
 {
     int value {};
@@ -41,8 +44,10 @@ struct SP
 {
     SmartType value;
     auto ssTuple() const { return std::tie(value); }
-    SS_COMPARISONS_MEMBER(SP);
+    SS_COMPARISONS_MEMBER_ONLY_EQ(SP);
 };
+
+inline bool compare_eq(const SP<SomeStructPtr>&, const SomeStructPtr& a, const SomeStructPtr& b) { return a.get() == b.get(); }
 
 } // namespace
 
@@ -110,6 +115,12 @@ TEST(SuitableStruct, ComparisonsTest_shared_ptr)
     ASSERT_NE(a, b);
 
     *a.value = 2;
+    ASSERT_EQ(a, b);
+}
+
+TEST(SuitableStruct, ComparisonsTest_shared_ptr_specific)
+{
+    SP<SomeStructPtr> a, b;
     ASSERT_EQ(a, b);
 }
 
