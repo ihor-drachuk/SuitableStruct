@@ -10,15 +10,17 @@ add_library(SuitableStruct STATIC ${SOURCES})
 target_include_directories(SuitableStruct PUBLIC headers)
 target_compile_features(SuitableStruct PUBLIC cxx_std_17)
 
-find_package(QT NAMES Qt6 Qt5 OPTIONAL_COMPONENTS Core Gui)
-find_package(Qt${QT_VERSION_MAJOR} QUIET OPTIONAL_COMPONENTS Core Gui)
+find_package(Qt6 COMPONENTS Core Gui QUIET)
+if (NOT Qt6_FOUND)
+    find_package(Qt5 5.15 COMPONENTS Core Gui QUIET)
+endif()
 
 if(Qt5_FOUND OR Qt6_FOUND)
     target_link_libraries(SuitableStruct
         PUBLIC
-            Qt${QT_VERSION_MAJOR}::Core
+            Qt::Core
         PRIVATE
-            Qt${QT_VERSION_MAJOR}::Gui
+            Qt::Gui
     )
 
     target_compile_definitions(SuitableStruct PUBLIC SUITABLE_STRUCT_HAS_QT_LIBRARY)
