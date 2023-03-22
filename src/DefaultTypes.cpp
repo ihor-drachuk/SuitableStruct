@@ -280,6 +280,16 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
     assert(false && "Unhandled color spec!");
 }
 
+QJsonValue ssJsonSaveImpl(const QJsonValue& value)
+{
+    return value;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst)
+{
+    dst = src;
+}
+
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 } // namespace SuitableStruct

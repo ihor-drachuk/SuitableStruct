@@ -320,6 +320,9 @@ void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst);
 QJsonValue ssJsonSaveImpl(const QColor& value);
 void ssJsonLoadImpl(const QJsonValue& src, QColor& dst);
 
+QJsonValue ssJsonSaveImpl(const QJsonValue& value);
+void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst);
+
 template<typename T,
          typename std::enable_if_t<std::is_enum_v<T> && QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
 QJsonValue ssJsonSaveImpl(T value)
