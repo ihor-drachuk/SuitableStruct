@@ -3,6 +3,11 @@
 #include <SuitableStruct/Comparisons.h>
 #include <optional>
 
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+#include <QJsonValue>
+#include <QJsonObject>
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
 using namespace SuitableStruct;
 
 namespace {
@@ -22,11 +27,16 @@ struct SomeStruct2
     SomeStruct1 struct1;
     float c {};
     std::optional<int> d;
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+    QJsonValue e;
+#else
+    int e {};
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
-    auto ssTuple() const { return std::tie(struct1, c, d); }
+    auto ssTuple() const { return std::tie(struct1, c, d, e); }
 };
 
-SS_COMPARISONS(SomeStruct2);
+SS_COMPARISONS_ONLY_EQ(SomeStruct2);
 
 } // namespace
 
@@ -39,6 +49,9 @@ TEST(SuitableStruct, SerializationTest)
     value1.struct1.b = "sdfsdf";
     value1.c = 2.5;
     value1.d = 150;
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+    value1.e = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
     SomeStruct2 value2;
     ASSERT_NE(value1, value2);
