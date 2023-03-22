@@ -154,6 +154,8 @@ Buffer ssSaveImpl(const QPoint& value);
 void ssLoadImpl(BufferReader& buffer, QPoint& value);
 Buffer ssSaveImpl(const QColor& value);
 void ssLoadImpl(BufferReader& buffer, QColor& value);
+Buffer ssSaveImpl(const QJsonValue& value);
+void ssLoadImpl(BufferReader& buffer, QJsonValue& value);
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 template<typename C>

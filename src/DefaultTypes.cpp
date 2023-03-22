@@ -6,6 +6,15 @@
 #include <QPoint>
 #include <QJsonObject>
 #include <QColor>
+#include <QDataStream>
+
+namespace {
+void setupDataStream(QDataStream& ds) {
+    ds.setByteOrder(QDataStream::BigEndian);
+    ds.setFloatingPointPrecision(QDataStream::DoublePrecision);
+    ds.setVersion(QDataStream::Qt_5_15);
+}
+} // namespace
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 namespace SuitableStruct {
@@ -82,6 +91,24 @@ Buffer ssSaveImpl(const QColor& value)
 void ssLoadImpl(BufferReader& buffer, QColor& value)
 {
     buffer.readRaw(&value, sizeof(value));
+}
+
+Buffer ssSaveImpl(const QJsonValue& value)
+{
+    QByteArray data;
+    QDataStream ds (&data, QIODevice::WriteOnly);
+    setupDataStream(ds);
+    ds << value;
+    return ssSaveImpl(data);
+}
+
+void ssLoadImpl(BufferReader& buffer, QJsonValue& value)
+{
+    QByteArray data;
+    ssLoadImpl(buffer, data);
+    QDataStream ds (&data, QIODevice::ReadOnly);
+    setupDataStream(ds);
+    ds >> value;
 }
 
 QJsonValue ssJsonSaveImpl(QChar value)
