@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/Comparisons.h>
+#include <vector>
 #include <optional>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QJsonValue>
 #include <QJsonObject>
+#include <QDateTime>
+#include <QTimeZone>
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 using namespace SuitableStruct;
@@ -104,3 +107,29 @@ TEST(SuitableStruct, SerializationTest_Corruption)
         trySaveLoad(-1, i);
     }
 }
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+TEST(SuitableStruct, SerializationTest_DateTime)
+{
+    const QDate date(2023, 05, 05);
+    const QTime time(1, 54, 12, 127);
+
+    const std::vector<QDateTime> testData {
+        QDateTime::currentDateTime(),
+        QDateTime::currentDateTimeUtc(),
+        QDateTime(date, time, Qt::LocalTime),
+        QDateTime(date, time, Qt::UTC),
+        QDateTime(date, time, Qt::OffsetFromUTC, 60*60*2),
+        QDateTime(date, time, QTimeZone("America/New_York")),
+        QDateTime(date, time, QTimeZone("sdfgihdsfg"))
+    };
+
+    for (const auto& x : testData) {
+        const auto buffer = ssSave(x, false);
+        const auto readBack = ssLoadRet<QDateTime>(buffer, false);
+        ASSERT_EQ(x, readBack);
+        ASSERT_EQ(x.offsetFromUtc(), readBack.offsetFromUtc());
+        ASSERT_EQ(x.timeZone(), readBack.timeZone());
+    }
+}
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

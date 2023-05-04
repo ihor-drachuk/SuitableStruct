@@ -9,6 +9,8 @@
 #include <QPoint>
 #include <QJsonValue>
 #include <QJsonObject>
+#include <QDateTime>
+#include <QTimeZone>
 #include <string>
 #include <tuple>
 #include <array>
@@ -119,6 +121,30 @@ TEST(SuitableStruct, JsonSerialization)
         saved2 = QJsonValue(valueRoot);
         ssJsonLoad(saved2, c);
         ASSERT_EQ(c, a);
+    }
+}
+
+TEST(SuitableStruct, JsonSerialization_DateTime)
+{
+    const QDate date(2023, 05, 05);
+    const QTime time(1, 54, 12, 127);
+
+    const std::vector<QDateTime> testData {
+        QDateTime::currentDateTime(),
+        QDateTime::currentDateTimeUtc(),
+        QDateTime(date, time, Qt::LocalTime),
+        QDateTime(date, time, Qt::UTC),
+        QDateTime(date, time, Qt::OffsetFromUTC, 60*60*2),
+        QDateTime(date, time, QTimeZone("America/New_York")),
+        QDateTime(date, time, QTimeZone("sdfgihdsfg"))
+    };
+
+    for (const auto& x : testData) {
+        const auto buffer = ssJsonSave(x, false);
+        const auto readBack = ssJsonLoadRet<QDateTime>(buffer, false);
+        ASSERT_EQ(x, readBack);
+        ASSERT_EQ(x.offsetFromUtc(), readBack.offsetFromUtc());
+        ASSERT_EQ(x.timeZone(), readBack.timeZone());
     }
 }
 

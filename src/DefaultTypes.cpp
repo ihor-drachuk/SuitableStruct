@@ -1,5 +1,8 @@
 #include <SuitableStruct/Internals/DefaultTypes.h>
 
+#include <SuitableStruct/SerializerJson.h>
+#include <variant>
+
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QByteArray>
 #include <QString>
@@ -7,6 +10,8 @@
 #include <QJsonObject>
 #include <QColor>
 #include <QDataStream>
+#include <QDateTime>
+#include <QTimeZone>
 
 namespace {
 void setupDataStream(QDataStream& ds) {
@@ -110,6 +115,117 @@ void ssLoadImpl(BufferReader& buffer, QJsonValue& value)
     setupDataStream(ds);
     ds >> value;
 }
+
+Buffer ssSaveImpl(const QTimeZone& value)
+{
+    return ssSaveImpl(value.id());
+}
+
+void ssLoadImpl(BufferReader& buffer, QTimeZone& value)
+{
+    decltype(value.id()) temp;
+    ssLoadImpl(buffer, temp);
+    value = temp.isEmpty() ? QTimeZone() : QTimeZone(temp);
+}
+
+Buffer ssSaveImpl(const QDate& value)
+{
+    return ssSaveImpl(value.toJulianDay());
+}
+
+void ssLoadImpl(BufferReader& buffer, QDate& value)
+{
+    decltype(value.toJulianDay()) temp;
+    ssLoadImpl(buffer, temp);
+    value = QDate::fromJulianDay(temp);
+}
+
+Buffer ssSaveImpl(const QTime& value)
+{
+    return ssSaveImpl(value.msecsSinceStartOfDay());
+}
+
+void ssLoadImpl(BufferReader& buffer, QTime& value)
+{
+    decltype(value.msecsSinceStartOfDay()) temp;
+    ssLoadImpl(buffer, temp);
+    value = QTime::fromMSecsSinceStartOfDay(temp);
+}
+
+Buffer ssSaveImpl(const QDateTime& value)
+{
+    Buffer result;
+    result += ssSaveImpl(value.timeSpec());
+
+    switch (value.timeSpec()) {
+        case Qt::LocalTime: break;
+        case Qt::UTC:       break;
+
+        case Qt::OffsetFromUTC:
+            result += ssSaveImpl(value.offsetFromUtc());
+            break;
+
+        case Qt::TimeZone:
+            result += ssSaveImpl(value.timeZone());
+            break;
+
+        default:
+            assert(false && "Unhandled timeSpec!");
+    }
+
+    result += ssSaveImpl(value.date());
+    result += ssSaveImpl(value.time());
+
+    return result;
+}
+
+void ssLoadImpl(BufferReader& buffer, QDateTime& value)
+{
+    using OffsetFromUtc = decltype(value.offsetFromUtc());
+
+    const auto timeSpec = ssLoadImplRet<Qt::TimeSpec>(buffer);
+    std::variant<std::monostate, OffsetFromUtc, QTimeZone> timeDetails;
+
+    switch (timeSpec) {
+        case Qt::LocalTime: break;
+        case Qt::UTC:       break;
+
+        case Qt::OffsetFromUTC: {
+            timeDetails = ssLoadImplRet<OffsetFromUtc>(buffer);
+            break;
+        }
+
+        case Qt::TimeZone:
+            timeDetails = ssLoadImplRet<QTimeZone>(buffer);
+            break;
+
+        default:
+            assert(false && "Unhandled timeSpec!");
+    }
+
+    const auto date = ssLoadImplRet<QDate>(buffer);
+    const auto time = ssLoadImplRet<QTime>(buffer);
+
+    switch (timeSpec) {
+        case Qt::LocalTime:
+        case Qt::UTC:
+            value = QDateTime(date, time, timeSpec);
+            break;
+
+        case Qt::OffsetFromUTC:
+            value = QDateTime(date, time, timeSpec, std::get<OffsetFromUtc>(timeDetails));
+            break;
+
+        case Qt::TimeZone:
+            value = QDateTime(date, time, std::get<QTimeZone>(timeDetails));
+            break;
+
+        default:
+            assert(false && "Unhandled timeSpec!");
+    }
+}
+
+// ---- ssJsonSave/Load ----
 
 QJsonValue ssJsonSaveImpl(QChar value)
 {
@@ -315,6 +431,97 @@ QJsonValue ssJsonSaveImpl(const QJsonValue& value)
 void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst)
 {
     dst = src;
+}
+
+QJsonValue ssJsonSaveImpl(const QTimeZone& value)
+{
+    const auto tzId = value.id();
+    return tzId.isEmpty() ? QString() : QString::fromLatin1(tzId);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QTimeZone& value)
+{
+    const auto tzId = src.toString();
+    value = tzId.isEmpty() ? QTimeZone() : QTimeZone(tzId.toLatin1());
+}
+
+QJsonValue ssJsonSaveImpl(const QDate& value)
+{
+    return value.toString(Qt::DateFormat::ISODate);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QDate& value)
+{
+    value = QDate::fromString(src.toString(), Qt::DateFormat::ISODate);
+}
+
+QJsonValue ssJsonSaveImpl(const QTime& value)
+{
+    return value.toString(Qt::DateFormat::ISODateWithMs);
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QTime& value)
+{
+    value = QTime::fromString(src.toString(), Qt::DateFormat::ISODateWithMs);
+}
+
+QJsonValue ssJsonSaveImpl(const QDateTime& value)
+{
+    QJsonObject result;
+    result["timeSpec"] = ssJsonSaveImpl(value.timeSpec());
+    result["date"] = ssJsonSaveImpl(value.date());
+    result["time"] = ssJsonSaveImpl(value.time());
+
+    switch (value.timeSpec()) {
+        case Qt::LocalTime:
+        case Qt::UTC:
+            break;
+
+        case Qt::OffsetFromUTC:
+            result["offset-from-UTC"] = ssJsonSaveImpl(value.offsetFromUtc());
+            break;
+
+        case Qt::TimeZone:
+            result["timezone"] = ssJsonSaveImpl(value.timeZone());
+            break;
+
+        default:
+            assert(false && "Unhandled timeSpec!");
+    }
+
+    return result;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QDateTime& value)
+{
+    using OffsetFromUtc = decltype(value.offsetFromUtc());
+
+    const auto obj = src.toObject();
+    const auto timeSpec = ssJsonLoadImplRet<Qt::TimeSpec>(obj["timeSpec"]);
+    const auto date = ssJsonLoadImplRet<QDate>(obj["date"]);
+    const auto time = ssJsonLoadImplRet<QTime>(obj["time"]);
+
+    switch (timeSpec) {
+        case Qt::LocalTime:
+        case Qt::UTC:
+            value = QDateTime(date, time, timeSpec);
+            break;
+
+        case Qt::OffsetFromUTC: {
+            const auto offsetFromUtc = ssJsonLoadImplRet<OffsetFromUtc>(obj["offset-from-UTC"]);
+            value = QDateTime(date, time, timeSpec, offsetFromUtc);
+            break;
+        }
+
+        case Qt::TimeZone: {
+            const auto timeZone = ssJsonLoadImplRet<QTimeZone>(obj["timezone"]);
+            value = QDateTime(date, time, timeZone);
+            break;
+        }
+
+        default:
+            assert(false && "Unhandled timeSpec!");
+    }
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

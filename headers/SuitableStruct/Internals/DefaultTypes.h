@@ -156,6 +156,14 @@ Buffer ssSaveImpl(const QColor& value);
 void ssLoadImpl(BufferReader& buffer, QColor& value);
 Buffer ssSaveImpl(const QJsonValue& value);
 void ssLoadImpl(BufferReader& buffer, QJsonValue& value);
+Buffer ssSaveImpl(const QTimeZone& value);
+void ssLoadImpl(BufferReader& buffer, QTimeZone& value);
+Buffer ssSaveImpl(const QDate& value);
+void ssLoadImpl(BufferReader& buffer, QDate& value);
+Buffer ssSaveImpl(const QTime& value);
+void ssLoadImpl(BufferReader& buffer, QTime& value);
+Buffer ssSaveImpl(const QDateTime& value);
+void ssLoadImpl(BufferReader& buffer, QDateTime& value);
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 template<typename C>
@@ -324,6 +332,18 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst);
 
 QJsonValue ssJsonSaveImpl(const QJsonValue& value);
 void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst);
+
+QJsonValue ssJsonSaveImpl(const QTimeZone& value);
+void ssJsonLoadImpl(const QJsonValue& src, QTimeZone& value);
+
+QJsonValue ssJsonSaveImpl(const QDate& value);
+void ssJsonLoadImpl(const QJsonValue& src, QDate& value);
+
+QJsonValue ssJsonSaveImpl(const QTime& value);
+void ssJsonLoadImpl(const QJsonValue& src, QTime& value);
+
+QJsonValue ssJsonSaveImpl(const QDateTime& value);
+void ssJsonLoadImpl(const QJsonValue& src, QDateTime& value);
 
 template<typename T,
          typename std::enable_if_t<std::is_enum_v<T> && QtPrivate::IsQEnumHelper<T>::Value>* = nullptr>
