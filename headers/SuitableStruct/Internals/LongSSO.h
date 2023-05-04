@@ -81,14 +81,14 @@ public:
 
             if (limitDelta >= 0) {
                 uint8_t* target = m_buf + m_sz;
-                if(buffer) memcpy(target, buffer, sz); // It's 20x faster, than doing memcpy in `appendData`
+                if (buffer) memcpy(target, buffer, sz); // It's 20x faster, than doing memcpy in `appendData`
                 m_sz += sz;
                 return target;
             } else {
                 assert(sz > 0);
                 assert(limitDelta < 0);
                 auto target = makeLong(sz);
-                if(buffer) memcpy(target, buffer, sz);
+                if (buffer) memcpy(target, buffer, sz);
                 return target;
             }
         } else {
