@@ -179,26 +179,26 @@ struct Converters;
 
 template<size_t I, typename T, typename T2,
          typename std::enable_if<!(I <= SSVersionDirect<T>::version)>::type* = nullptr>
-void ssLoadAndConvertIter2(T&, const T2&)
+void ssLoadAndConvertIter2(T&, T2&&)
 {
     assert(!"Unexpected control flow!");
 }
 
 template<size_t I, typename T, typename T2,
          typename std::enable_if<I == SSVersionDirect<T>::version>::type* = nullptr>
-void ssLoadAndConvertIter2(T& obj, const T2& srcObj)
+void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
 {
-    obj.ssConvertFrom(srcObj);
+    obj.ssConvertFrom(std::forward<T2&&>(srcObj));
 }
 
 template<size_t I, typename T, typename T2,
          typename std::enable_if<!(I >= SSVersionDirect<T>::version)>::type* = nullptr>
-void ssLoadAndConvertIter2(T& obj, const T2& srcObj)
+void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
 {
     using CurrentType = std::tuple_element_t<I, typename T::ssVersions>;
     CurrentType tempObj;
-    tempObj.ssConvertFrom(srcObj);
-    ssLoadAndConvertIter2<I+1>(obj, tempObj);
+    tempObj.ssConvertFrom(std::forward<T2&&>(srcObj));
+    ssLoadAndConvertIter2<I+1>(obj, std::move(tempObj));
 }
 
 template<size_t I, typename T,
@@ -233,7 +233,7 @@ void ssLoadAndConvertIter(BufferReader& buffer, T& obj, uint8_t serializedVer)
         ssLoadImpl(buffer, oldObject);
 
         // Convert to new version
-        ssLoadAndConvertIter2<I+1>(obj, oldObject);
+        ssLoadAndConvertIter2<I+1>(obj, std::move(oldObject));
     }
 }
 
