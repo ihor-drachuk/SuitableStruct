@@ -35,8 +35,7 @@ public:
     inline LongSSO& operator=(const LongSSO& rhs) {
         if (this == &rhs) return *this;
 
-        LongSSO temp(rhs);
-        swap(temp);
+        *this = std::move(LongSSO(rhs));
 
         return *this;
     }
@@ -60,16 +59,21 @@ public:
         return *this;
     }
 
-    inline operator bool() const { return size() != 0; }
-    inline bool operator==(const LongSSO& rhs) {
-        if (this == &rhs) return true;
+    inline explicit operator bool() const { return size() != 0; }
+
+    template<size_t limit>
+    inline bool operator==(const LongSSO<limit>& rhs) const {
+        if (static_cast<const void*>(this) == static_cast<const void*>(&rhs))
+            return true;
 
         if (rhs.size() != size())
             return false;
 
         return (memcmp(data(), rhs.data(), size()) == 0);
     }
-    inline bool operator!=(const LongSSO& rhs) { return !(*this == rhs); }
+
+    template<size_t limit>
+    inline bool operator!=(const LongSSO<limit>& rhs) const { return !(*this == rhs); }
 
     inline uint8_t* allocate_copy(size_t sz, const uint8_t* buffer = nullptr) {
         if (m_isShortBuf) {
@@ -151,7 +155,7 @@ private:
         return m_longBuf->data() + m_sz;
     }
 
-    void swap(LongSSO& rhs) {
+    void swap(LongSSO& rhs) noexcept {
         std::swap(m_buf, rhs.m_buf);
         std::swap(m_sz, rhs.m_sz);
         std::swap(m_longBuf, rhs.m_longBuf);
