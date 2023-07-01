@@ -312,6 +312,9 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
     dst = src.toDouble();
 }
 
+QJsonValue ssJsonSaveImpl(bool value);
+void ssJsonLoadImpl(const QJsonValue& src, bool& dst);
+
 QJsonValue ssJsonSaveImpl(QChar value);
 void ssJsonLoadImpl(const QJsonValue& src, QChar& dst);
 
