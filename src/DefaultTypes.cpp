@@ -227,6 +227,16 @@ void ssLoadImpl(BufferReader& buffer, QDateTime& value)
 
 // ---- ssJsonSave/Load ----
 
+QJsonValue ssJsonSaveImpl(bool value)
+{
+    return value;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, bool& dst)
+{
+    dst = src.toBool();
+}
+
 QJsonValue ssJsonSaveImpl(QChar value)
 {
     return QString(value);
