@@ -30,13 +30,14 @@ struct SomeStruct2
     SomeStruct1 struct1;
     float c {};
     std::optional<int> d;
+    bool e {};
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
-    QJsonValue e;
+    QJsonValue f;
 #else
-    int e {};
+    int f {};
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
-    auto ssTuple() const { return std::tie(struct1, c, d, e); }
+    auto ssTuple() const { return std::tie(struct1, c, d, e, f); }
 };
 
 SS_COMPARISONS_ONLY_EQ(SomeStruct2);
@@ -52,8 +53,9 @@ TEST(SuitableStruct, SerializationTest)
     value1.struct1.b = "sdfsdf";
     value1.c = 2.5;
     value1.d = 150;
+    value1.e = true;
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
-    value1.e = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
+    value1.f = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
     SomeStruct2 value2;
@@ -133,3 +135,15 @@ TEST(SuitableStruct, SerializationTest_DateTime)
     }
 }
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
+TEST(SuitableStruct, SerializationTest_OldBoolCompatibility)
+{
+    const Buffer oldTrue("\1", 1);
+    const Buffer oldFalse("\0", 1);
+    BufferReader oldTrueReader(oldTrue);
+    BufferReader oldFalseReader(oldFalse);
+    const auto readTrue = ssLoadImplRet<bool>(BufferReader(oldTrue));
+    const auto readFalse = ssLoadImplRet<bool>(BufferReader(oldFalse));
+    ASSERT_TRUE(readTrue);
+    ASSERT_FALSE(readFalse);
+}
