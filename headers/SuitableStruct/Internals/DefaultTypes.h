@@ -252,14 +252,20 @@ void ssLoadImpl (BufferReader& buffer, std::tuple<Args...>& value)
 
 namespace SuitableStruct {
 
+QJsonValue ssJsonSaveImpl(bool value);
+void ssJsonLoadImpl(const QJsonValue& src, bool& dst);
+
 template<typename T,
          typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
 QJsonValue ssJsonSaveImpl(T value)
 {
     // Used for hash storing
 
-    if (value <= std::numeric_limits<int>::max()) {
+    if (value <= std::numeric_limits<int>::max() &&
+        value >= std::numeric_limits<int>::min())
+    {
         return static_cast<int>(value);
+
     } else {
         return QString::number(value);
     }
@@ -275,16 +281,13 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
         const auto dVal = src.toDouble();
         const auto rVal = qRound64(dVal);
 
-        if (!qFuzzyCompare(dVal, rVal)) {
+        if (!qFuzzyCompare(dVal, static_cast<double>(rVal)))
             Internal::throwIntegrity();
-            return;
-        }
 
         if (rVal > std::numeric_limits<T>::max() ||
             rVal < std::numeric_limits<T>::min())
         {
             Internal::throwOutOfRange();
-            return;
         }
 
         dst = rVal;
@@ -311,9 +314,6 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
     assert(src.isDouble());
     dst = src.toDouble();
 }
-
-QJsonValue ssJsonSaveImpl(bool value);
-void ssJsonLoadImpl(const QJsonValue& src, bool& dst);
 
 QJsonValue ssJsonSaveImpl(QChar value);
 void ssJsonLoadImpl(const QJsonValue& src, QChar& dst);
