@@ -229,12 +229,30 @@ void ssLoadImpl(BufferReader& buffer, QDateTime& value)
 
 QJsonValue ssJsonSaveImpl(bool value)
 {
-    return value;
+    return {value};
 }
 
 void ssJsonLoadImpl(const QJsonValue& src, bool& dst)
 {
-    dst = src.toBool();
+    if (src.isBool()) {
+        dst = src.toBool();
+
+    } else if (src.isDouble()) {
+        const auto dstDouble = src.toDouble();
+        const auto dstInt = src.toInt();
+
+        if (!qFuzzyCompare(dstDouble, static_cast<double>(dstInt)))
+            Internal::throwIntegrity();
+
+        switch (dstInt) {
+            case 0: dst = false; break;
+            case 1: dst = true;  break;
+            default: Internal::throwIntegrity();
+        }
+
+    } else {
+        Internal::throwIntegrity();
+    }
 }
 
 QJsonValue ssJsonSaveImpl(QChar value)
