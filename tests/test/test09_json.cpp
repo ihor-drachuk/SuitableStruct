@@ -42,6 +42,7 @@ namespace {
 
 struct Struct1
 {
+    bool a0{};
     short a{};
     long b{};
     QString c;
@@ -63,8 +64,8 @@ struct Struct1
     std::unique_ptr<int> r;
     std::optional<int> s1, s2;
 
-    auto ssTuple() const { return std::tie(a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2); }
-    auto ssNamesTuple() const { return std::tie("a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2"); }
+    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2); }
+    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2"); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
 };
 
@@ -76,6 +77,7 @@ TEST(SuitableStruct, JsonSerialization)
     Struct1 a, b, c;
     ASSERT_EQ(a, b);
 
+    a.a0 = true;
     a.a = 10;
     a.b = 15;
     a.c = "Test";
@@ -146,6 +148,16 @@ TEST(SuitableStruct, JsonSerialization_DateTime)
         ASSERT_EQ(x.offsetFromUtc(), readBack.offsetFromUtc());
         ASSERT_EQ(x.timeZone(), readBack.timeZone());
     }
+}
+
+TEST(SuitableStruct, JsonSerialization_OldBoolCompatibility)
+{
+    const QJsonValue oldTrue = 1;
+    const QJsonValue oldFalse = 0;
+    const auto readTrue = ssJsonLoadImplRet<bool>(oldTrue);
+    const auto readFalse = ssJsonLoadImplRet<bool>(oldFalse);
+    ASSERT_TRUE(readTrue);
+    ASSERT_FALSE(readFalse);
 }
 
 #include "test09_json.moc"
