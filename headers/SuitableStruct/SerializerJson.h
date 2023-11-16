@@ -1,3 +1,7 @@
+/* License:  MIT
+ * Source:   https://github.com/ihor-drachuk/SuitableStruct
+ * Contact:  ihor-drachuk-libs@pm.me  */
+
 #pragma once
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY

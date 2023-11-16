@@ -1,3 +1,7 @@
+/* License:  MIT
+ * Source:   https://github.com/ihor-drachuk/SuitableStruct
+ * Contact:  ihor-drachuk-libs@pm.me  */
+
 #include <gtest/gtest.h>
 #include <string>
 #include <unordered_set>
