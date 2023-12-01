@@ -467,8 +467,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst)
 
 QJsonValue ssJsonSaveImpl(const QTimeZone& value)
 {
-    const auto tzId = value.id();
-    return tzId.isEmpty() ? QString() : QString::fromLatin1(tzId);
+    return QString::fromLatin1(value.id());
 }
 
 void ssJsonLoadImpl(const QJsonValue& src, QTimeZone& value)
