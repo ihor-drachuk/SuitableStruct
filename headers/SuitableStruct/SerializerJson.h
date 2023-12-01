@@ -120,7 +120,7 @@ void ssJsonLoadImplViaTuple(const QJsonObject& value, std::tuple<Args...>& args,
 
 // ssJsonLoad.  1) Method
 template<typename T,
-         typename std::enable_if<can_ssJsonLoadImpl<T&, BufferReader&>::value>::type* = nullptr>
+         typename std::enable_if<can_ssJsonLoadImpl<T&, QJsonValue>::value>::type* = nullptr>
 void ssJsonLoadImpl(const QJsonValue& value, T& obj)
 {
     obj.ssJsonLoadImpl(value);
@@ -129,7 +129,7 @@ void ssJsonLoadImpl(const QJsonValue& value, T& obj)
 // ssJsonLoad.  2) Handlers
 template<typename T,
          typename std::enable_if<
-             !can_ssJsonLoadImpl<T&, BufferReader&>::value &&
+             !can_ssJsonLoadImpl<T&, QJsonValue>::value &&
              ::SuitableStruct::Handlers<T>::value
              >::type* = nullptr>
 void ssJsonLoadImpl(const QJsonValue& value, T& obj)
@@ -140,7 +140,7 @@ void ssJsonLoadImpl(const QJsonValue& value, T& obj)
 // ssJsonLoad.  3) Tuple
 template<typename T,
          typename std::enable_if<
-             !can_ssJsonLoadImpl<T&, BufferReader&>::value &&
+             !can_ssJsonLoadImpl<T&, QJsonValue>::value &&
              !::SuitableStruct::Handlers<T>::value &&
               can_ssTuple<T>::value && can_ssNamesTuple<T>::value
              >::type* = nullptr>
