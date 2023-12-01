@@ -450,9 +450,10 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst)
             dst.setRgba64(QRgba64::fromRgba64(r, g, b, a));
             break;
         }
-    }
 
-    assert(false && "Unhandled color spec!");
+        default:
+            assert(false && "Unhandled color spec!");
+    }
 }
 
 QJsonValue ssJsonSaveImpl(const QJsonValue& value)

@@ -15,6 +15,7 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QTimeZone>
+#include <QColor>
 #include <string>
 #include <tuple>
 #include <array>
@@ -70,9 +71,10 @@ struct Struct1
     QJsonValue t1;
     QJsonObject t2;
     QJsonArray t3;
+    QColor u;
 
-    auto ssTuple() const { return std::tie(a0, a, b, c, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3); }
-    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3"); }
+    auto ssTuple() const { return std::tie(a0, a, b, c, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u); }
+    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u"); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
 };
 
@@ -108,6 +110,7 @@ TEST(SuitableStruct, JsonSerialization)
     a.t1 = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
     a.t2 = QJsonObject({{"SubValue3", 123}});
     a.t3 = QJsonArray{1, 2, QJsonObject({{"SubValue4", 816}})};
+    a.u = QColor(128, 255, 0);
 
     ASSERT_NE(b, a);
     auto saved = ssJsonSave(a);
