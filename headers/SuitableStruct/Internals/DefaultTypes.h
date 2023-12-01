@@ -340,6 +340,12 @@ void ssJsonLoadImpl(const QJsonValue& src, QColor& dst);
 QJsonValue ssJsonSaveImpl(const QJsonValue& value);
 void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst);
 
+QJsonValue ssJsonSaveImpl(const QJsonObject& value);
+void ssJsonLoadImpl(const QJsonValue& src, QJsonObject& dst);
+
+QJsonValue ssJsonSaveImpl(const QJsonArray& value);
+void ssJsonLoadImpl(const QJsonValue& src, QJsonArray& dst);
+
 QJsonValue ssJsonSaveImpl(const QTimeZone& value);
 void ssJsonLoadImpl(const QJsonValue& src, QTimeZone& value);
 

@@ -50,7 +50,7 @@ struct Struct1
     short a{};
     long b{};
     QString c;
-    QJsonValue d;
+    // missing d
     Enum1 e1{};
     Test9_CustomEnum::Enum2 e2{};
     Test9_CustomEnum::Enum2 e3{};
@@ -67,9 +67,12 @@ struct Struct1
     std::shared_ptr<int> q;
     std::unique_ptr<int> r;
     std::optional<int> s1, s2;
+    QJsonValue t1;
+    QJsonObject t2;
+    QJsonArray t3;
 
-    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2); }
-    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2"); }
+    auto ssTuple() const { return std::tie(a0, a, b, c, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3); }
+    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3"); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
 };
 
@@ -101,7 +104,10 @@ TEST(SuitableStruct, JsonSerialization)
     a.r = std::make_unique<int>(13);
     a.s1 = 14;
     a.s2 = {};
-    a.d = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
+
+    a.t1 = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
+    a.t2 = QJsonObject({{"SubValue3", 123}});
+    a.t3 = QJsonArray{1, 2, QJsonObject({{"SubValue4", 816}})};
 
     ASSERT_NE(b, a);
     auto saved = ssJsonSave(a);

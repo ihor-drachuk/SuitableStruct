@@ -465,6 +465,29 @@ void ssJsonLoadImpl(const QJsonValue& src, QJsonValue& dst)
     dst = src;
 }
 
+
+QJsonValue ssJsonSaveImpl(const QJsonObject& value)
+{
+    return value;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QJsonObject& dst)
+{
+    assert(src.isObject());
+    dst = src.toObject();
+}
+
+QJsonValue ssJsonSaveImpl(const QJsonArray& value)
+{
+    return value;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QJsonArray& dst)
+{
+    assert(src.isArray());
+    dst = src.toArray();
+}
+
 QJsonValue ssJsonSaveImpl(const QTimeZone& value)
 {
     return QString::fromLatin1(value.id());
