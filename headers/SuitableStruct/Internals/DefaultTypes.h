@@ -281,6 +281,14 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 {
     // Used for hash validation, that's why here is possibility to throw exception
 
+    const auto checkLimits = [](T value) {
+        if (value > std::numeric_limits<T>::max() ||
+            value < std::numeric_limits<T>::min())
+        {
+            Internal::throwOutOfRange();
+        }
+    };
+
     if (src.isDouble()) {
         const auto dVal = src.toDouble();
         const auto rVal = qRound64(dVal);
@@ -288,16 +296,23 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
         if (!qFuzzyCompare(dVal, static_cast<double>(rVal)))
             Internal::throwIntegrity();
 
-        if (rVal > std::numeric_limits<T>::max() ||
-            rVal < std::numeric_limits<T>::min())
-        {
-            Internal::throwOutOfRange();
-        }
+        checkLimits(rVal);
 
         dst = rVal;
 
     } else if (src.isString()) {
-        dst = src.toString().toLongLong();
+        bool ok;
+        auto srcStr = src.toString();
+        auto result = std::is_signed_v<T> ? srcStr.toLongLong(&ok, 0) :
+                                            srcStr.toULongLong(&ok, 0);
+
+        if(ok) {
+            T temp = static_cast<T>(result);
+            checkLimits(temp);
+            dst = temp;
+        } else {
+            Internal::throwIntegrity();
+        }
 
     } else {
         Internal::throwIntegrity();
