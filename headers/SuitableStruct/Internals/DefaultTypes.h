@@ -281,7 +281,7 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 {
     // Used for hash validation, that's why here is possibility to throw exception
 
-    const auto checkLimits = [](T value) {
+    const auto checkLimits = [](auto value) {
         if (value > std::numeric_limits<T>::max() ||
             value < std::numeric_limits<T>::min())
         {
@@ -291,8 +291,15 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 
     if (src.isDouble()) {
         const auto dVal = src.toDouble();
-        const auto rVal = qRound64(dVal);
+        const auto rVal = [dVal](){
+            if constexpr (std::is_signed_v<T>) {
+                return static_cast<int64_t>(dVal);
+            } else {
+                return static_cast<uint64_t>(dVal);
+            }
+        }();
 
+        // Make sure it's actually integer (not floating-point)
         if (!qFuzzyCompare(dVal, static_cast<double>(rVal)))
             Internal::throwIntegrity();
 
@@ -302,14 +309,20 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 
     } else if (src.isString()) {
         bool ok;
-        auto srcStr = src.toString();
-        auto result = std::is_signed_v<T> ? srcStr.toLongLong(&ok, 0) :
-                                            srcStr.toULongLong(&ok, 0);
+        const auto srcStr = src.toString();
+        const auto base = srcStr.startsWith(QStringLiteral("0x")) || srcStr.startsWith(QStringLiteral("-0x")) ? 16 : 10;
+        const auto tempResult = [&srcStr, &ok, base](){
+            if constexpr (std::is_signed_v<T>) {
+                return srcStr.toLongLong(&ok, base);
+            } else {
+                return srcStr.toULongLong(&ok, base);
+            }
+        }();
 
-        if(ok) {
-            T temp = static_cast<T>(result);
-            checkLimits(temp);
-            dst = temp;
+        if (ok) {
+            checkLimits(tempResult);
+            dst = static_cast<T>(tempResult);
+
         } else {
             Internal::throwIntegrity();
         }

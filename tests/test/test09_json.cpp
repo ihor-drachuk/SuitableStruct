@@ -95,51 +95,22 @@ struct Struct2
 
     int32_t e0{};
     int32_t e1{};
+    int32_t e2{};
 
     uint32_t f0{};
     uint32_t f1{};
 
     int64_t g0{};
     int64_t g1{};
+    int64_t g2{};
 
     uint64_t h0{};
     uint64_t h1{};
 
-    auto ssTuple() const { return std::tie(a0, a1, b0, b1, c0, c1, d0, d1, e0, e1, f0, f1, g0, g1, h0, h1); }
-    auto ssNamesTuple() const { return std::tie("a0", "a1", "b0", "b1", "c0", "c1", "d0", "d1", "e0", "e1", "f0", "f1", "g0", "g1", "h0", "h1"); }
+    auto ssTuple() const { return std::tie(a0, a1, b0, b1, c0, c1, d0, d1, e0, e1, e2, f0, f1, g0, g1, g2, h0, h1); }
+    auto ssNamesTuple() const { return std::tie("a0", "a1", "b0", "b1", "c0", "c1", "d0", "d1", "e0", "e1", "e2", "f0", "f1", "g0", "g1", "g2", "h0", "h1"); }
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct2);
 };
-
-const QJsonValue testJson = []() {
-  auto configText = "{"
-                    "\"content\": {"
-                      "\"a0\": \"127\","
-                      "\"a1\": \"-0x80\","
-
-                      "\"b0\": \"255\","
-                      "\"b1\": \"0x80\","
-
-                      "\"c0\": \"12345\","
-                      "\"c1\": \"-0x3039\","
-
-                      "\"d0\": \"65535\","
-                      "\"d1\": \"0xFFFF\","
-
-                      "\"e0\": \"2147483647\","
-                      "\"e1\": \"-0x75BCD15\","
-
-                      "\"f0\": \"4294967295\","
-                      "\"f1\": \"0x075BCD15\","
-
-                      "\"g0\": \"-1234567890123456\","
-                      "\"g1\": \"0x7FFFFFFFFFFFFFFF\","
-
-                      "\"h0\": \"123456789012345678\","
-                      "\"h1\": \"0xFFFFFFFFFFFFFFFF\""
-                      "}"
-                    "}";
-
-  return QJsonDocument::fromJson(configText).object();
-}();
 
 } // namespace
 
@@ -203,9 +174,45 @@ TEST(SuitableStruct, JsonSerialization)
     }
 }
 
-TEST(SuitableStruct, JsonDeserializationIntegrals)
+TEST(SuitableStruct, JsonSerialization_Integers)
 {
-    Struct2 a;
+    const QJsonValue testJson = []() {
+        const auto configText = R"(
+        {
+            "content": {
+                "a0": "127",
+                "a1": "-0x80",
+
+                "b0": "255",
+                "b1": "0x80",
+
+                "c0": "12345",
+                "c1": "-0x3039",
+
+                "d0": "65535",
+                "d1": "0xFFFF",
+
+                "e0": "2147483647",
+                "e1": "-0x75BCD15",
+                "e2": "-2147483648",
+
+                "f0": "4294967295",
+                "f1": "0x075BCD15",
+
+                "g0": "-1234567890123456",
+                "g1": "0x7FFFFFFFFFFFFFFF",
+                "g2": "-9223372036854775808",
+
+                "h0": "123456789012345678",
+                "h1": "0xFFFFFFFFFFFFFFFF"
+            }
+        }
+      )";
+
+      return QJsonDocument::fromJson(configText).object();
+    }();
+
+    Struct2 a, b;
     ssJsonLoad(testJson, a, false);
 
     ASSERT_EQ(a.a0, 127);
@@ -222,15 +229,48 @@ TEST(SuitableStruct, JsonDeserializationIntegrals)
 
     ASSERT_EQ(a.e0, 2147483647);
     ASSERT_EQ(a.e1, -0x75BCD15);
+    ASSERT_EQ(a.e2, -2147483648);
 
     ASSERT_EQ(a.f0, 4294967295);
     ASSERT_EQ(a.f1, 0x075BCD15);
 
     ASSERT_EQ(a.g0, -1234567890123456);
     ASSERT_EQ(a.g1, 0x7FFFFFFFFFFFFFFF);
+    ASSERT_EQ(a.g2, /*-9223372036854775808LL*/ INT64_MIN); // Can't be specified normally
 
     ASSERT_EQ(a.h0, 123456789012345678);
     ASSERT_EQ(a.h1, 0xFFFFFFFFFFFFFFFF);
+
+    const auto serialized = QString::fromLatin1(QJsonDocument(ssJsonSave(a, false).toObject()).toJson(QJsonDocument::JsonFormat::Indented));
+    const auto reference = R"({
+    "content": {
+        "a0": 127,
+        "a1": -128,
+        "b0": 255,
+        "b1": 128,
+        "c0": 12345,
+        "c1": -12345,
+        "d0": 65535,
+        "d1": 65535,
+        "e0": 2147483647,
+        "e1": -123456789,
+        "e2": -2147483648,
+        "f0": "4294967295",
+        "f1": "123456789",
+        "g0": "-1234567890123456",
+        "g1": "9223372036854775807",
+        "g2": "-9223372036854775808",
+        "h0": "123456789012345678",
+        "h1": "18446744073709551615"
+    },
+    "version": 0
+}
+)";
+    ASSERT_EQ(serialized, reference);
+
+    const auto testJson2 = QJsonDocument::fromJson(reference).object();
+    ssJsonLoad(testJson2, b, false);
+    ASSERT_EQ(a, b);
 }
 
 TEST(SuitableStruct, JsonSerialization_DateTime)
