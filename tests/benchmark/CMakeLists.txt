@@ -5,7 +5,9 @@ foreach( testsourcefile ${SOURCES} )
 
     add_executable( benchmark-${testname} ${testsourcefile} )
     target_compile_features(benchmark-${testname} PRIVATE cxx_std_17)
-    target_link_libraries(benchmark-${testname} gtest benchmark SuitableStruct)
+
+    find_package(Threads REQUIRED)
+    target_link_libraries(benchmark-${testname} gtest benchmark Threads::Threads ${PROJECT_NAME})
 
     add_test(NAME benchmark-${testname}-runner COMMAND benchmark-${testname})
 
