@@ -13,6 +13,7 @@
 #include <QPoint>
 #include <QJsonObject>
 #include <QColor>
+#include <QIODevice>
 #include <QDataStream>
 #include <QDateTime>
 #include <QTimeZone>

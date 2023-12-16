@@ -55,7 +55,7 @@ public:
         return (*this);
     }
 
-protected:
+private:
     UniversalInserterContext<Container> m_context;
     Container& m_container;
     Inserter m_inserter;

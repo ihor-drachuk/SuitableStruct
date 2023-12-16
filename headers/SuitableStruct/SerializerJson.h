@@ -88,7 +88,7 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode)
     }
 
     if (protectedMode) {
-        auto hash = qHash(part1);
+        auto hash = static_cast<uint32_t>(qHash(part1));
         QJsonValue hashValue = ssJsonSaveImpl(hash);
 
         QJsonObject hashWrapper;
@@ -257,10 +257,10 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode)
         const auto jsonContent = jsonObject["content"];
         const auto jsonHash = jsonObject["hash"];
 
-        uint hash;
+        uint32_t hash;
         ssJsonLoadImpl(jsonHash, hash);
 
-        if (hash != qHash(jsonContent))
+        if (hash != static_cast<uint32_t>(qHash(jsonContent)))
             Internal::throwIntegrity();
 
         content = jsonContent;
