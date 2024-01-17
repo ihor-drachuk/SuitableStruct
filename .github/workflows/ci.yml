@@ -50,6 +50,7 @@ jobs:
           cd ./build/tests
           ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
 
+
   Build-Windows:
     strategy:
       fail-fast: false
@@ -108,6 +109,57 @@ jobs:
           ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
 
 
+  Build-MacOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        qt: [qt_no, 5.15.2, 6.6.1]
+        build_type: [Debug, Release]
+
+    runs-on: macos-latest
+
+    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
+    timeout-minutes: 30
+
+    steps:
+      - name: "Set env values"
+        shell: bash
+        run: |
+          echo "CORES=$(sysctl -n hw.ncpu)" >> $GITHUB_ENV
+
+      - name: Install Qt
+        if: ${{ matrix.qt != 'qt_no' }}
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ matrix.qt }}
+          host: mac
+          target: desktop
+          arch: clang_64
+          dir: ${{github.workspace}}/qt
+          cache: true
+          setup-python: false
+
+      - name: "Add Qt to PATH"
+        if: ${{ matrix.qt != 'qt_no' }}
+        shell: bash
+        run: |
+          echo "${{github.workspace}}/qt" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v3
+        with:
+          path: ${{github.workspace}}/src
+          submodules: true
+
+      - name: Build
+        working-directory: ${{github.workspace}}
+        shell: bash
+        run: |
+          cmake -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -G "Unix Makefiles" -S "./src" -B "./build"
+          cmake --build "./build" --config "${{matrix.build_type}}" -j "${{env.CORES}}"
+          cd ./build/tests
+          ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
+
+
   CodeChecker:
     runs-on: [ubuntu-22.04]
 
@@ -159,8 +211,9 @@ jobs:
           [ -f "./ccOK" ] || exit 1
           exit 0
 
+
   Done:
-    needs: [Build-Linux, Build-Windows, CodeChecker]
+    needs: [Build-Linux, Build-Windows, Build-MacOS, CodeChecker]
     runs-on: [ubuntu-latest]
     steps:
     - name: "Done"
