@@ -28,11 +28,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: "Set OS-specific values (Linux)"
-        if: ${{ runner.os == 'linux' }}
+      - name: "Set env values"
         shell: bash
         run: |
-         echo "GENERATOR=Unix Makefiles" >> $GITHUB_ENV
          echo "CORES=$(nproc --all)" >> $GITHUB_ENV
          echo "WORKSPACE=$(pwd)" >> $GITHUB_ENV
 
@@ -45,7 +43,7 @@ jobs:
         working-directory: ${{github.workspace}}
         shell: bash
         run: |
-          cmake -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" ${{env.ARCH_FLAGS}} -G "${{env.GENERATOR}}" -S "./src" -B "./build"
+          cmake -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -G "Unix Makefiles" -S "./src" -B "./build"
           cmake --build "./build" --config "${{matrix.build_type}}" -j "${{env.CORES}}"
           cd ./build/tests
           ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
