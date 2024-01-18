@@ -183,7 +183,8 @@ jobs:
         run: |
           mkdir build
           echo "-/usr/include/*" >> build/skipfile.txt
-          echo "-/workspace/build" >> build/skipfile.txt
+          echo "-/opt/Qt/*" >> build/skipfile.txt
+          echo "-$(pwd)/build*" >> build/skipfile.txt
           cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE="Debug" -S "./src" -B "./build" -G "Unix Makefiles"
           cmake --build "./build" --config "Debug" -j $(nproc --all)
 
