@@ -305,7 +305,7 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
 
         checkLimits(rVal);
 
-        dst = rVal;
+        dst = static_cast<T>(rVal);
 
     } else if (src.isString()) {
         bool ok;
