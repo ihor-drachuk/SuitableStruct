@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-PROJECT(SuitableStruct)
+PROJECT(SuitableStruct LANGUAGES CXX)
 
 option(SUITABLE_STRUCT_ENABLE_TESTS     "SuitableStruct: Enable tests" OFF)
 option(SUITABLE_STRUCT_ENABLE_BENCHMARK "SuitableStruct: Enable benchmark" OFF)
