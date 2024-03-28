@@ -24,7 +24,7 @@ jobs:
       image: ihordrachuk/id-build-env:${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.test_libs }}-${{ matrix.qt }}-${{ matrix.arch || 'default' }}
       options: --workdir ${{ github.workspace }}
 
-    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
+    if: "!contains(github.event.head_commit.message, 'Skip build')"
     timeout-minutes: 30
 
     steps:
@@ -68,7 +68,7 @@ jobs:
 
     runs-on: windows-latest
 
-    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
+    if: "!contains(github.event.head_commit.message, 'Skip build')"
     timeout-minutes: 30
 
     steps:
@@ -121,7 +121,7 @@ jobs:
 
     runs-on: macos-latest
 
-    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
+    if: "!contains(github.event.head_commit.message, 'Skip build')"
     timeout-minutes: 30
 
     steps:
@@ -166,6 +166,7 @@ jobs:
 
 
   CodeChecker:
+    if: "!contains(github.event.head_commit.message, 'Skip SA')"
     runs-on: [ubuntu-22.04]
 
     container:
