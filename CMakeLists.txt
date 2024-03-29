@@ -3,12 +3,14 @@ PROJECT(SuitableStruct LANGUAGES CXX)
 
 option(SUITABLE_STRUCT_ENABLE_TESTS     "SuitableStruct: Enable tests" OFF)
 option(SUITABLE_STRUCT_ENABLE_BENCHMARK "SuitableStruct: Enable benchmark" OFF)
+
 set(SUITABLE_STRUCT_QT_SEARCH_MODE "Auto" CACHE STRING "SuitableStruct: Set Qt search mode")
 set_property(CACHE SUITABLE_STRUCT_QT_SEARCH_MODE PROPERTY STRINGS "Auto" "Force" "Skip")
+
 set(SUITABLE_STRUCT_GTEST_SEARCH_MODE "Auto" CACHE STRING "SuitableStruct: Set GTest search mode")
 set_property(CACHE SUITABLE_STRUCT_GTEST_SEARCH_MODE PROPERTY STRINGS "Auto" "Force" "Skip")
 
-FILE(GLOB_RECURSE SOURCES src/*.cpp src/*.h headers/*.h)
+FILE(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.h headers/*.h)
 
 add_library(SuitableStruct STATIC ${SOURCES})
 target_include_directories(SuitableStruct PUBLIC headers)
