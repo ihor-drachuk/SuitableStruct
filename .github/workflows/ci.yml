@@ -46,7 +46,17 @@ jobs:
           QT_SEARCH_MODE=$([[ "${{ matrix.qt }}" == "qt_no" ]] && echo "Skip" || echo "Force")
           GTEST_SEARCH_MODE=$([[ "${{ matrix.test_libs }}" == "tl_missing" ]] && echo "Skip" || echo "Force")
           
-          cmake -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DSUITABLE_STRUCT_QT_SEARCH_MODE:STRING=$QT_SEARCH_MODE -DSUITABLE_STRUCT_GTEST_SEARCH_MODE:STRING=$GTEST_SEARCH_MODE -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -G "Unix Makefiles" -S "./src" -B "./build"
+          cmake \
+            -Wdev -Werror=dev \
+            -Wdeprecated -Werror=deprecated \
+            -DSUITABLE_STRUCT_ENABLE_TESTS=ON \
+            -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON \
+            -DSUITABLE_STRUCT_QT_SEARCH_MODE:STRING=$QT_SEARCH_MODE \
+            -DSUITABLE_STRUCT_GTEST_SEARCH_MODE:STRING=$GTEST_SEARCH_MODE \
+            -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" \
+            -G "Unix Makefiles" \
+            -S "./src" \
+            -B "./build"
           cmake --build "./build" --config "${{matrix.build_type}}" -j "${{env.CORES}}"
           cd ./build/tests
           ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
@@ -193,7 +203,14 @@ jobs:
           echo "-/usr/include/*" >> build/skipfile.txt
           echo "-/opt/Qt/*" >> build/skipfile.txt
           echo "-$(pwd)/build*" >> build/skipfile.txt
-          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE="Debug" -S "./src" -B "./build" -G "Unix Makefiles"
+          cmake \
+            -DSUITABLE_STRUCT_ENABLE_TESTS=ON \
+            -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_BUILD_TYPE="Debug" \
+            -S "./src" \
+            -B "./build" \
+            -G "Unix Makefiles"
           cmake --build "./build" --config "Debug" -j $(nproc --all)
 
       - name: "Run the analysis"
