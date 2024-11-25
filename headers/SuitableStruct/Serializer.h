@@ -114,6 +114,7 @@ Buffer ssSave(const T& obj, bool protectedMode)
 
     if (protectedMode) {
         Buffer part;
+        part.writeZeros(5); // Global reserved
         ssWriteVersion<T>(part);
         part += ssSaveImpl(obj);
 
@@ -287,6 +288,7 @@ void ssLoad(BufferReader& buffer, T& obj, bool protectedMode = true)
         if (hash != actualHash)
             Internal::throwIntegrity();
 
+        groupData.advance(5); // Reserved
         auto ver = ssReadVersion<T>(groupData);
         ssLoadAndConvert(groupData, temp, ver);
         obj = std::move(temp);
