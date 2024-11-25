@@ -431,7 +431,7 @@ void ssJsonLoadImpl(const QJsonValue& src, T& dst)
         dst = static_cast<T>(value);
 
     } else {
-        assert(!"Unexpected type!");
+        assert(false && "Unexpected type!");
     }
 }
 

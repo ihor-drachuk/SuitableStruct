@@ -185,7 +185,7 @@ template<size_t I, typename T, typename T2,
          typename std::enable_if<!(I <= SSVersionDirect<T>::version)>::type* = nullptr>
 void ssLoadAndConvertIter2(T&, T2&&)
 {
-    assert(!"Unexpected control flow!");
+    assert(false && "Unexpected control flow!");
 }
 
 template<size_t I, typename T, typename T2,
@@ -209,7 +209,7 @@ template<size_t I, typename T,
          typename std::enable_if<!(I <= SSVersionDirect<T>::version)>::type* = nullptr>
 void ssLoadAndConvertIter(BufferReader&, T&, uint8_t)
 {
-    assert(!"Unexpected control flow!");
+    assert(false && "Unexpected control flow!");
 }
 
 template<size_t I, typename T,
