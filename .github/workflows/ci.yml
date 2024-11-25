@@ -140,7 +140,7 @@ jobs:
           arch: clang_64
           dir: ${{github.workspace}}/qt
           cache: true
-          setup-python: false
+          setup-python: true
 
       - name: "Add Qt to PATH"
         if: ${{ matrix.qt != 'qt_no' }}
@@ -159,7 +159,7 @@ jobs:
         run: |
           QT_SEARCH_MODE=$([[ "${{ matrix.qt }}" == "qt_no" ]] && echo "Skip" || echo "Force")
           
-          cmake -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DSUITABLE_STRUCT_QT_SEARCH_MODE:STRING=$QT_SEARCH_MODE -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -G "Unix Makefiles" -S "./src" -B "./build"
+          cmake -DCMAKE_OSX_ARCHITECTURES=x86_64 -DSUITABLE_STRUCT_ENABLE_TESTS=ON -DSUITABLE_STRUCT_ENABLE_BENCHMARK=ON -DSUITABLE_STRUCT_QT_SEARCH_MODE:STRING=$QT_SEARCH_MODE -DCMAKE_BUILD_TYPE="${{matrix.build_type}}" -G "Unix Makefiles" -S "./src" -B "./build"
           cmake --build "./build" --config "${{matrix.build_type}}" -j "${{env.CORES}}"
           cd ./build/tests
           ctest --no-tests=error --rerun-failed --output-on-failure --timeout 30 -C "${{matrix.build_type}}"
