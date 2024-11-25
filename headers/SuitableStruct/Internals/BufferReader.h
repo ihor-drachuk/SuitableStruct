@@ -15,7 +15,7 @@ class BufferReader
 {
 public:
     // Make sure lifetime of 'buffer' is greater than 'BufferReader's.
-    inline BufferReader(const Buffer& buffer,
+    BufferReader(const Buffer& buffer,
                         std::optional<size_t> offsetStart = {},
                         std::optional<size_t> len = {},
                         std::optional<size_t> offsetEnd = {})
@@ -38,26 +38,26 @@ public:
         assert(position() <= size());
     }
 
-    inline const Buffer& bufferSrc() const { return m_buffer; }
-    inline Buffer bufferMapped() const { return Buffer(cdataSrc(), size()); }
-    inline Buffer bufferRest() const { return Buffer(cdata(), rest()); }
+    const Buffer& bufferSrc() const { return m_buffer; }
+    Buffer bufferMapped() const { return Buffer(cdataSrc(), size()); }
+    Buffer bufferRest() const { return Buffer(cdata(), rest()); }
 
-    inline size_t offsetStart() const { return m_offsetStart; };
-    inline size_t offsetEnd() const { return m_offsetEnd.value_or(m_buffer.size()); }
+    size_t offsetStart() const { return m_offsetStart; }
+    size_t offsetEnd() const { return m_offsetEnd.value_or(m_buffer.size()); }
 
-    inline size_t size() const { return offsetEnd() - offsetStart(); };
-    inline size_t position() const { return m_offset; }
-    inline size_t rest() const { return size() - position(); };
+    size_t size() const { return offsetEnd() - offsetStart(); }
+    size_t position() const { return m_offset; }
+    size_t rest() const { return size() - position(); }
 
-    inline size_t seek(size_t pos) { assert(pos <= size()); m_offset = pos; return m_offset; };
-    inline size_t advance(int64_t delta) { assert( static_cast<int64_t>(m_offset) + delta >= 0); return seek(m_offset + delta); }
-    inline void resetPosition() { m_offset = 0; }
+    size_t seek(size_t pos) { assert(pos <= size()); m_offset = pos; return m_offset; }
+    size_t advance(int64_t delta) { assert( static_cast<int64_t>(m_offset) + delta >= 0); return seek(m_offset + delta); }
+    void resetPosition() { m_offset = 0; }
 
-    inline const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
-    inline const uint8_t* cdataSrc() const { return dataSrc(); }
+    const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
+    const uint8_t* cdataSrc() const { return dataSrc(); }
 
-    inline const uint8_t* data() const { return m_buffer.data() + m_offsetStart + m_offset; }
-    inline const uint8_t* cdata() const { return data(); }
+    const uint8_t* data() const { return m_buffer.data() + m_offsetStart + m_offset; }
+    const uint8_t* cdata() const { return data(); }
 
     uint32_t hash() const;
 
