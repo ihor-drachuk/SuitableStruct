@@ -54,6 +54,7 @@ public:
     template<typename T,
              typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
     void write(const T& data) { writeRaw(&data, sizeof(data)); }
+    void writeZeros(size_t sz) { auto ptr = m_sso.allocate_copy(sz); memset(ptr, 0, sz); }
 
     void writeRaw(const void* ptr, size_t sz) { m_sso.allocate_copy(sz, static_cast<const uint8_t*>(ptr)); }
 
