@@ -167,7 +167,7 @@ jobs:
 
   CodeChecker:
     if: "!contains(github.event.head_commit.message, 'Skip SA')"
-    runs-on: [ubuntu-22.04]
+    runs-on: [ubuntu-latest]
 
     container:
       image: ihordrachuk/id-build-env:linux-clang-tl_missing-qt_5.15.2-codechecker
