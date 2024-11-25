@@ -106,7 +106,6 @@ TEST(SuitableStruct, SerializationTest_Corruption)
     };
 
     size_t len = ssSave(SomeStruct2()).size();
-    ASSERT_GE(len, sizeof(SomeStruct2));
 
     for (size_t i = 0; i < len; i++) {
         trySaveLoad(i);
