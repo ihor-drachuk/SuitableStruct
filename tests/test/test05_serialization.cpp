@@ -7,6 +7,7 @@
 #include <SuitableStruct/Comparisons.h>
 #include <vector>
 #include <optional>
+#include <chrono>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QJsonValue>
@@ -40,8 +41,11 @@ struct SomeStruct2
 #else
     int f {};
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+    std::chrono::steady_clock::time_point g;
+    std::chrono::hours h {};
+    std::chrono::milliseconds i {};
 
-    auto ssTuple() const { return std::tie(struct1, c, d, e, f); }
+    auto ssTuple() const { return std::tie(struct1, c, d, e, f, g, h, i); }
 };
 
 SS_COMPARISONS_ONLY_EQ(SomeStruct2);
@@ -61,6 +65,9 @@ TEST(SuitableStruct, SerializationTest)
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
     value1.f = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+    value1.g = std::chrono::steady_clock::now();
+    value1.h = std::chrono::hours(5);
+    value1.i = std::chrono::milliseconds(123);
 
     SomeStruct2 value2;
     ASSERT_NE(value1, value2);

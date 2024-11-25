@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
-#include <memory>
 #include <limits>
 #include <SuitableStruct/Internals/FwdDeclarations.h>
 #include <SuitableStruct/Internals/DefaultTypes.h>
@@ -108,7 +107,7 @@ Buffer ssSaveImpl(const T& obj)
 
 
 template<typename T>
-Buffer ssSave(const T& obj, bool protectedMode)
+Buffer ssSave(const T& obj, bool protectedMode /*= true*/)
 {
     Buffer result;
 
@@ -269,7 +268,7 @@ void ssLoadAndConvert(BufferReader& buffer, T& obj, const std::optional<uint8_t>
 }
 
 template<typename T>
-void ssLoad(BufferReader& buffer, T& obj, bool protectedMode = true)
+void ssLoad(BufferReader& buffer, T& obj, bool protectedMode /*= true*/)
 {
     if (protectedMode) {
         T temp;
@@ -312,7 +311,7 @@ void ssLoad(const Buffer& buffer, T& obj, bool protectedMode = true)
 }
 
 template<typename T>
-T ssLoadRet(BufferReader& reader, bool protectedMode = true)
+T ssLoadRet(BufferReader& reader, bool protectedMode /*= true*/)
 {
     T result;
     ssLoad(reader, result, protectedMode);

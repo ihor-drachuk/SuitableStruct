@@ -7,16 +7,17 @@
 #include <limits>
 #include <cstdint>
 #include <iterator>
+#include <chrono>
+#include <optional>
+#include <string>
+#include <memory>
+
 #include <SuitableStruct/Internals/FwdDeclarations.h>
 #include <SuitableStruct/Internals/BufferReader.h>
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Handlers.h>
 #include <SuitableStruct/Serializer.h>
-
-#include <optional>
-#include <string>
-#include <memory>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QtContainerFwd>
@@ -89,6 +90,33 @@ void ssLoadImpl(BufferReader& buffer, std::pair<T1, T2>& value)
 {
     ssLoad(buffer, value.first, false);
     ssLoad(buffer, value.second, false);
+}
+
+template<typename Rep, typename Period>
+Buffer ssSaveImpl(const std::chrono::duration<Rep, Period>& value)
+{
+    Buffer result;
+    result += ssSave(value.count(), false);
+    return result;
+}
+
+template<typename Rep, typename Period>
+void ssLoadImpl(BufferReader& buffer, std::chrono::duration<Rep, Period>& value)
+{
+    value = std::chrono::duration<Rep, Period>(ssLoadRet<Rep>(buffer, false));
+}
+
+template<typename Clock, typename Duration>
+Buffer ssSaveImpl(const std::chrono::time_point<Clock, Duration>& value)
+{
+    return ssSave(std::chrono::time_point_cast<std::chrono::high_resolution_clock::duration>(value).time_since_epoch(), false);
+}
+
+template<typename Clock, typename Duration>
+void ssLoadImpl(BufferReader& buffer, std::chrono::time_point<Clock, Duration>& value)
+{
+    using T = std::chrono::high_resolution_clock::duration;
+    value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(buffer, false)));
 }
 
 template<typename T>
@@ -619,6 +647,31 @@ void ssJsonLoadImpl(const QJsonValue& src, std::pair<T1, T2>& dst)
     ssJsonLoad(obj["first"], dst.first, false);
     assert(obj.contains("second"));
     ssJsonLoad(obj["second"], dst.second, false);
+}
+
+template<typename Rep, typename Period>
+QJsonValue ssJsonSaveImpl(const std::chrono::duration<Rep, Period>& value)
+{
+    return ssJsonSave(value.count(), false);
+}
+
+template<typename Rep, typename Period>
+void ssJsonLoadImpl(const QJsonValue& src, std::chrono::duration<Rep, Period>& value)
+{
+    value = std::chrono::duration<Rep, Period>(ssJsonLoadRet<Rep>(src, false));
+}
+
+template<typename Clock, typename Duration>
+QJsonValue ssJsonSaveImpl(const std::chrono::time_point<Clock, Duration>& value)
+{
+    return ssJsonSave(std::chrono::time_point_cast<std::chrono::high_resolution_clock::duration>(value).time_since_epoch(), false);
+}
+
+template<typename Clock, typename Duration>
+void ssJsonLoadImpl(const QJsonValue& src, std::chrono::time_point<Clock, Duration>& value)
+{
+    using T = std::chrono::high_resolution_clock::duration;
+    value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, false)));
 }
 
 } // namespace SuitableStruct
