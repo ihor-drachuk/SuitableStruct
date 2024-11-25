@@ -83,7 +83,7 @@ TEST(SuitableStruct, SerializationTest)
 
 TEST(SuitableStruct, SerializationTest_Corruption)
 {
-    auto trySaveLoad = [](int byteToCorrupt = -1, int reduceSize = 0) {
+    auto trySaveLoad = [](int byteToCorrupt = -1, size_t reduceSize = 0) {
         SomeStruct2 value1;
 
         value1.struct1.a = 1;
@@ -105,11 +105,14 @@ TEST(SuitableStruct, SerializationTest_Corruption)
         ASSERT_THROW(ssLoad(saved, value2), std::exception);
     };
 
-    for (int i = 0; i < 20; i++) {
+    size_t len = ssSave(SomeStruct2()).size();
+    ASSERT_GE(len, sizeof(SomeStruct2));
+
+    for (size_t i = 0; i < len; i++) {
         trySaveLoad(i);
     }
 
-    for (int i = 1; i < 20; i++) {
+    for (size_t i = 1; i < 20; i++) {
         trySaveLoad(-1, i);
     }
 }

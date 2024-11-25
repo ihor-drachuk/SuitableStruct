@@ -41,7 +41,7 @@ public:
 
     This& operator=(value_type&& value)
     {
-        m_inserter(m_context, m_container, std::forward<value_type>(value));
+        m_inserter(m_context, m_container, std::move(value));
         return (*this);
     }
 

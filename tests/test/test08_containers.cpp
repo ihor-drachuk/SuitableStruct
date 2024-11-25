@@ -47,7 +47,7 @@ struct Struct2
 {
     std::vector<Struct1> first;
 
-    std::array<int, 3> a;
+    std::array<int, 3> a {};
     std::deque<int> b;
     std::forward_list<int> c;
     std::list<int> d;
