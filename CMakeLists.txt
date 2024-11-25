@@ -46,8 +46,8 @@ if(MSVC)
     set_target_properties(SuitableStruct PROPERTIES STATIC_LIBRARY_OPTIONS "/ignore:4221")
     target_compile_options(SuitableStruct PRIVATE "/WX")
 
-    # MSVC 2022 + Enterprise + Qt5 + QVector::operator== warning mitigation
-    if(Qt5_FOUND AND MSVC_VERSION GREATER_EQUAL 1929 AND "${CMAKE_CXX_COMPILER}" MATCHES "Enterprise")
+    # MSVC 2022 + Qt5 + QVector::operator== warning mitigation
+    if(Qt5_FOUND AND MSVC_VERSION GREATER_EQUAL 1929)
         target_compile_definitions(SuitableStruct PUBLIC _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS=1 _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING=1)
     endif()
 else()
