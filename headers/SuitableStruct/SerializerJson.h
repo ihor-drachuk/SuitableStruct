@@ -11,8 +11,6 @@
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
-#include <memory>
-#include <limits>
 #include <SuitableStruct/Internals/FwdDeclarations.h>
 #include <SuitableStruct/Internals/DefaultTypes.h>
 #include <SuitableStruct/Internals/Helpers.h>
@@ -73,7 +71,7 @@ QJsonValue ssJsonSaveImpl(const T& obj)
 
 
 template<typename T>
-QJsonValue ssJsonSave(const T& obj, bool protectedMode)
+QJsonValue ssJsonSave(const T& obj, bool protectedMode /*= true*/)
 {
     QJsonValue part1;
     const auto ver = ssVersion<T>();
@@ -243,7 +241,7 @@ void ssJsonLoadAndConvert(const QJsonValue& value, T& obj, const std::optional<u
 }
 
 template<typename T>
-void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode)
+void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
 {
     QJsonValue content;
 
@@ -284,7 +282,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode)
 }
 
 template<typename T>
-T ssJsonLoadRet(const QJsonValue& value, bool protectedMode = true)
+T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
 {
     T result;
     ssJsonLoad(value, result, protectedMode);
