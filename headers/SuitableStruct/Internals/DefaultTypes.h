@@ -75,6 +75,22 @@ void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
     }
 }
 
+template<typename T1, typename T2>
+Buffer ssSaveImpl(const std::pair<T1, T2>& value)
+{
+    Buffer result;
+    result += ssSave(value.first, false);
+    result += ssSave(value.second, false);
+    return result;
+}
+
+template<typename T1, typename T2>
+void ssLoadImpl(BufferReader& buffer, std::pair<T1, T2>& value)
+{
+    ssLoad(buffer, value.first, false);
+    ssLoad(buffer, value.second, false);
+}
+
 template<typename T>
 Buffer ssSaveImpl(const std::shared_ptr<T>& value)
 {
@@ -139,6 +155,9 @@ size_t containerSize(const T& container) { return std::distance(container.begin(
 template<typename T>
 struct ContainerInserter { static auto get(T& x) { return std::back_inserter(x); } };
 
+template<typename T>
+struct ContainerItemType { using type = typename T::value_type; };
+
 Buffer ssSaveImpl(const std::string& value);
 void ssLoadImpl(BufferReader& buffer, std::string& value);
 
@@ -201,7 +220,7 @@ Buffer ssSaveImpl (const C<T,N>& value)
 template<typename C>
 void ssLoadContainerImpl (BufferReader& buffer, C& value)
 {
-    using T = typename C::value_type;
+    using T = typename ContainerItemType<C>::type;
 
     uint64_t sz;
     buffer.read(sz);
@@ -474,8 +493,8 @@ void ssJsonLoadContainerImpl (const QJsonValue& value, C& result)
 {
     assert(value.isArray());
 
-    using T = typename C::value_type;
-    using Size = decltype(value.toArray().size());
+    using T = typename ContainerItemType<C>::type;
+    using Size = decltype(value.toArray().size()); // Size is not saved, so we can use native size type
 
     const auto arr = value.toArray();
 
@@ -581,6 +600,26 @@ template<typename... Ts> QJsonValue ssJsonSaveImpl(const std::shared_ptr<Ts...>&
 template<typename... Ts> void ssJsonLoadImpl(const QJsonValue& src, std::shared_ptr<Ts...>& dst) { ssJsonLoadSmartPtrImpl(src, dst); }
 template<typename... Ts> QJsonValue ssJsonSaveImpl(const std::optional<Ts...>& value) { return ssJsonSaveSmartPtrImpl(value); }
 template<typename... Ts> void ssJsonLoadImpl(const QJsonValue& src, std::optional<Ts...>& dst) { ssJsonLoadSmartPtrImpl(src, dst); }
+
+template<typename T1, typename T2>
+QJsonValue ssJsonSaveImpl(const std::pair<T1, T2>& value)
+{
+    QJsonObject obj;
+    obj["first"] = ssJsonSave(value.first, false);
+    obj["second"] = ssJsonSave(value.second, false);
+    return obj;
+}
+
+template<typename T1, typename T2>
+void ssJsonLoadImpl(const QJsonValue& src, std::pair<T1, T2>& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    assert(obj.contains("first"));
+    ssJsonLoad(obj["first"], dst.first, false);
+    assert(obj.contains("second"));
+    ssJsonLoad(obj["second"], dst.second, false);
+}
 
 } // namespace SuitableStruct
 

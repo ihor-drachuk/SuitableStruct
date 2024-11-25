@@ -10,6 +10,7 @@
 #include <SuitableStruct/Containers/vector.h>
 #include <SuitableStruct/Containers/list.h>
 #include <SuitableStruct/Containers/array.h>
+#include <SuitableStruct/Containers/unordered_map.h>
 #include <QPoint>
 #include <QJsonValue>
 #include <QJsonObject>
@@ -65,7 +66,7 @@ struct Struct1
     std::vector<int> m;         // #include <SuitableStruct/Containers/vector.h>
     std::list<std::string> n;   // #include <SuitableStruct/Containers/list.h>
     std::array<double, 5> o{};  // #include <SuitableStruct/Containers/array.h>
-    std::tuple<int, std::string> p {};
+    std::tuple<int, std::string> p;
     std::shared_ptr<int> q;
     std::unique_ptr<int> r;
     std::optional<int> s1, s2;
@@ -73,10 +74,11 @@ struct Struct1
     QJsonObject t2;
     QJsonArray t3;
     QColor u;
+    std::unordered_map<int, std::string> v; // #include <SuitableStruct/Containers/unordered_map.h>
 
-    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u); }
-    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u"); }
-    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
+    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u, v); }
+    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u", "v"); }
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1)
 };
 
 struct Struct2
@@ -109,7 +111,7 @@ struct Struct2
 
     auto ssTuple() const { return std::tie(a0, a1, b0, b1, c0, c1, d0, d1, e0, e1, e2, f0, f1, g0, g1, g2, h0, h1); }
     auto ssNamesTuple() const { return std::tie("a0", "a1", "b0", "b1", "c0", "c1", "d0", "d1", "e0", "e1", "e2", "f0", "f1", "g0", "g1", "g2", "h0", "h1"); }
-    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct2);
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct2)
 };
 
 } // namespace
@@ -146,6 +148,8 @@ TEST(SuitableStruct, JsonSerialization)
     a.t2 = QJsonObject({{"SubValue3", 123}});
     a.t3 = QJsonArray{1, 2, QJsonObject({{"SubValue4", 816}})};
     a.u = QColor(128, 255, 0);
+
+    a.v = {{1, "one"}, {2, "two"}};
 
     ASSERT_NE(b, a);
     auto saved = ssJsonSave(a);

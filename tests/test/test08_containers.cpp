@@ -15,6 +15,7 @@
 #include <SuitableStruct/Containers/unordered_set.h>
 #include <SuitableStruct/Containers/multiset.h>
 #include <SuitableStruct/Containers/unordered_multiset.h>
+#include <SuitableStruct/Containers/unordered_map.h>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QList>
@@ -56,8 +57,9 @@ struct Struct2
     std::unordered_set<int> g;
     std::multiset<int> h;
     std::unordered_multiset<int> i;
+    std::unordered_map<int, std::string> j;
 
-    auto ssTuple() const { return std::tie(first, a, b, c, d, e, f, g, h, i); }
+    auto ssTuple() const { return std::tie(first, a, b, c, d, e, f, g, h, i, j); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct2)
 };
 
@@ -87,6 +89,7 @@ TEST(SuitableStruct, ContainersTest)
     a1.g = {7, 77};
     a1.h = {8, 88};
     a1.i = {9, 99};
+    a1.j = {{10, "10"}, {11, "11"}};
 
     auto buf = ssSave(a1);
     ssLoad(buf, a2);
