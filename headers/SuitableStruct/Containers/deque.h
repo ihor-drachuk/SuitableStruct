@@ -3,7 +3,7 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #pragma once
-#include <SuitableStruct/Internals/DefaultTypes.h>
+#include <SuitableStruct/Internals/Common.h>
 #include <deque>
 
 template<typename... Args> struct SuitableStruct::IsContainer<std::deque<Args...>> : public std::true_type { };

@@ -3,7 +3,7 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #pragma once
-#include <SuitableStruct/Internals/DefaultTypes.h>
+#include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Internals/UniversalInserter.h>
 #include <set>
 

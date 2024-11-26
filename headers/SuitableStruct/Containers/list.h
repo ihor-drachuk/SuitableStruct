@@ -3,7 +3,7 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #pragma once
-#include <SuitableStruct/Internals/DefaultTypes.h>
+#include <SuitableStruct/Internals/Common.h>
 #include <list>
 
 template<typename... Args> struct SuitableStruct::IsContainer<std::list<Args...>> : public std::true_type { };
