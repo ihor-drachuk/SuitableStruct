@@ -282,7 +282,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
 }
 
 template<typename T>
-T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
+[[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
 {
     T result;
     ssJsonLoad(value, result, protectedMode);
@@ -290,7 +290,7 @@ T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
 }
 
 template<typename T>
-T ssJsonLoadImplRet(const QJsonValue& value)
+[[nodiscard]] T ssJsonLoadImplRet(const QJsonValue& value)
 {
     T result;
     ssJsonLoadImpl(value, result);
