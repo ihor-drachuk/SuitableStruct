@@ -311,7 +311,7 @@ void ssLoad(const Buffer& buffer, T& obj, bool protectedMode = true)
 }
 
 template<typename T>
-T ssLoadRet(BufferReader& reader, bool protectedMode /*= true*/)
+[[nodiscard]] T ssLoadRet(BufferReader& reader, bool protectedMode /*= true*/)
 {
     T result;
     ssLoad(reader, result, protectedMode);
@@ -319,19 +319,19 @@ T ssLoadRet(BufferReader& reader, bool protectedMode /*= true*/)
 }
 
 template<typename T>
-T ssLoadRet(BufferReader&& reader, bool protectedMode = true)
+[[nodiscard]] T ssLoadRet(BufferReader&& reader, bool protectedMode = true)
 {
     return ssLoadRet<T>(static_cast<BufferReader&>(reader), protectedMode);
 }
 
 template<typename T>
-T ssLoadRet(const Buffer& buffer, bool protectedMode = true)
+[[nodiscard]] T ssLoadRet(const Buffer& buffer, bool protectedMode = true)
 {
     return ssLoadRet<T>(BufferReader(buffer), protectedMode);
 }
 
 template<typename T>
-T ssLoadImplRet(BufferReader& reader)
+[[nodiscard]] T ssLoadImplRet(BufferReader& reader)
 {
     T result;
     ssLoadImpl(reader, result);
@@ -339,7 +339,7 @@ T ssLoadImplRet(BufferReader& reader)
 }
 
 template<typename T>
-T ssLoadImplRet(BufferReader&& reader)
+[[nodiscard]] T ssLoadImplRet(BufferReader&& reader)
 {
     return ssLoadImplRet<T>(static_cast<BufferReader&>(reader));
 }

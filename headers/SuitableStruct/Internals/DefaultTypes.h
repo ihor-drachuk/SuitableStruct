@@ -95,9 +95,7 @@ void ssLoadImpl(BufferReader& buffer, std::pair<T1, T2>& value)
 template<typename Rep, typename Period>
 Buffer ssSaveImpl(const std::chrono::duration<Rep, Period>& value)
 {
-    Buffer result;
-    result += ssSave(value.count(), false);
-    return result;
+    return ssSave(value.count(), false);
 }
 
 template<typename Rep, typename Period>
