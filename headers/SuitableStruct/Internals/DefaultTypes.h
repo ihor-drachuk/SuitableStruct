@@ -6,12 +6,12 @@
 #include <type_traits>
 #include <limits>
 #include <cstdint>
-#include <iterator>
 #include <chrono>
 #include <optional>
 #include <string>
 #include <memory>
 
+#include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Internals/FwdDeclarations.h>
 #include <SuitableStruct/Internals/BufferReader.h>
 #include <SuitableStruct/Internals/Helpers.h>
@@ -169,21 +169,6 @@ void ssLoadImpl(BufferReader& buffer, std::unique_ptr<T>& value)
     }
 }
 
-template<typename T> struct IsContainer : public std::false_type { };
-template<typename T> struct IsAssociativeContainer : public std::false_type { };
-
-template<typename T, typename std::enable_if<can_size<T>::value>::type* = nullptr>
-size_t containerSize(const T& container) { return container.size(); }
-
-template<typename T, typename std::enable_if<!can_size<T>::value>::type* = nullptr>
-size_t containerSize(const T& container) { return std::distance(container.begin(), container.end()); }
-
-template<typename T>
-struct ContainerInserter { static auto get(T& x) { return std::back_inserter(x); } };
-
-template<typename T>
-struct ContainerItemType { using type = typename T::value_type; };
-
 Buffer ssSaveImpl(const std::string& value);
 void ssLoadImpl(BufferReader& buffer, std::string& value);
 
@@ -192,8 +177,6 @@ void ssLoadImpl(BufferReader& buffer, std::string& value);
 template<typename Arg>     struct IsContainer<QVector<Arg>> : public std::true_type { };
 template<typename... Args> struct IsContainer<QList<Args...>> : public std::true_type { };
 template<>                 struct IsContainer<QStringList> : public std::true_type { };
-template<typename... Args> struct IsAssociativeContainer<QMap<Args...>> : public std::true_type { };
-template<typename... Args> struct IsAssociativeContainer<QHash<Args...>> : public std::true_type { };
 
 Buffer ssSaveImpl(const QByteArray& value);
 void ssLoadImpl(BufferReader& buffer, QByteArray& value);
