@@ -2,7 +2,7 @@
  * Source:   https://github.com/ihor-drachuk/SuitableStruct
  * Contact:  ihor-drachuk-libs@pm.me  */
 
-#include <SuitableStruct/Internals/BufferReader.h>
+#include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Hashes.h>
 

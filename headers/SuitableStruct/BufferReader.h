@@ -16,9 +16,9 @@ class BufferReader
 public:
     // Make sure lifetime of 'buffer' is greater than 'BufferReader's.
     BufferReader(const Buffer& buffer,
-                        std::optional<size_t> offsetStart = {},
-                        std::optional<size_t> len = {},
-                        std::optional<size_t> offsetEnd = {})
+                 std::optional<size_t> offsetStart = {},
+                 std::optional<size_t> len = {},
+                 std::optional<size_t> offsetEnd = {})
         : m_buffer(buffer)
     {
         assert((!len && !offsetEnd) ||
