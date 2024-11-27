@@ -13,7 +13,7 @@
 
 #include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Internals/FwdDeclarations.h>
-#include <SuitableStruct/Internals/BufferReader.h>
+#include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Internals/Exceptions.h>
 #include <SuitableStruct/Handlers.h>
