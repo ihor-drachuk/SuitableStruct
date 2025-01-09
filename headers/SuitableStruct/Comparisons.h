@@ -243,6 +243,34 @@ inline bool compareTuplesEq(const Struct& s, const std::tuple<Tp...>& lhs, const
         return (result OP true); \
     }
 
+
+#define SS_COMPARISONS_OP_SIMPLE(STRUCT, OP) \
+    inline bool operator OP(const STRUCT& lhs, const STRUCT& rhs) \
+    { \
+        return (lhs.ssTuple() OP rhs.ssTuple()); \
+    }
+
+#define SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, OP) \
+    inline bool operator OP(const STRUCT& rhs) const \
+    { \
+        return (ssTuple() OP rhs.ssTuple()); \
+    }
+
+#define SS_COMPARISONS_OP_EQ_SIMPLE(STRUCT, OP) \
+    inline bool operator OP(const STRUCT& lhs, const STRUCT& rhs) \
+    { \
+        const auto eq = (lhs.ssTuple() == rhs.ssTuple()); \
+        return (result OP true); \
+    }
+
+#define SS_COMPARISONS_MEMBER_OP_EQ_SIMPLE(STRUCT, OP) \
+    inline bool operator OP(const STRUCT& rhs) const \
+    { \
+        const auto eq = (lhs.ssTuple() == rhs.ssTuple()); \
+        return (result OP true); \
+    }
+
+
 #define SS_COMPARISONS(STRUCT) \
     SS_COMPARISONS_OP(STRUCT, ==) \
     SS_COMPARISONS_OP(STRUCT, !=) \
@@ -266,3 +294,28 @@ inline bool compareTuplesEq(const Struct& s, const std::tuple<Tp...>& lhs, const
 #define SS_COMPARISONS_MEMBER_ONLY_EQ(STRUCT) \
     SS_COMPARISONS_MEMBER_OP_EQ(STRUCT, ==) \
     SS_COMPARISONS_MEMBER_OP_EQ(STRUCT, !=)
+
+
+#define SS_COMPARISONS_SIMPLE(STRUCT) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, ==) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, !=) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, <) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, <=) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, >) \
+    SS_COMPARISONS_OP_SIMPLE(STRUCT, >=)
+
+#define SS_COMPARISONS_MEMBER_SIMPLE(STRUCT) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, ==) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, !=) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, <) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, <=) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, >) \
+    SS_COMPARISONS_MEMBER_OP_SIMPLE(STRUCT, >=)
+
+#define SS_COMPARISONS_ONLY_EQ_SIMPLE(STRUCT) \
+    SS_COMPARISONS_OP_EQ_SIMPLE(STRUCT, ==) \
+    SS_COMPARISONS_OP_EQ_SIMPLE(STRUCT, !=)
+
+#define SS_COMPARISONS_MEMBER_ONLY_EQ_SIMPLE(STRUCT) \
+    SS_COMPARISONS_MEMBER_OP_EQ_SIMPLE(STRUCT, ==) \
+    SS_COMPARISONS_MEMBER_OP_EQ_SIMPLE(STRUCT, !=)
