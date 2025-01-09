@@ -79,6 +79,7 @@ struct Struct1
     std::chrono::steady_clock::time_point w1;
     std::chrono::hours w2 {};
     std::chrono::milliseconds w3 {};
+    std::variant<std::monostate, int, std::string> x;
 
     auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u, v, w1, w2, w3); }
     auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u", "v", "w1", "w2", "w3"); }
@@ -158,6 +159,8 @@ TEST(SuitableStruct, JsonSerialization)
     a.w1 = std::chrono::steady_clock::now();
     a.w2 = std::chrono::hours(5);
     a.w3 = std::chrono::milliseconds(123);
+
+    a.x = "asdasd";
 
     ASSERT_NE(b, a);
     auto saved = ssJsonSave(a);

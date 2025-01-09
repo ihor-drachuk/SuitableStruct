@@ -10,6 +10,7 @@
 #include <optional>
 #include <string>
 #include <memory>
+#include <variant>
 
 #include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Internals/FwdDeclarations.h>
@@ -74,6 +75,49 @@ void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
     } else { // Just precaution
         value.reset();
     }
+}
+
+inline Buffer ssSaveImpl(const std::monostate& /*value*/)
+{
+    return {};
+}
+
+inline void ssLoadImpl(BufferReader& /*buffer*/, std::monostate& /*value*/)
+{ }
+
+template<typename... Ts>
+Buffer ssSaveImpl(const std::variant<Ts...>& value)
+{
+    Buffer result;
+    result.write(static_cast<uint8_t>(value.index()));
+
+    std::visit([&result](const auto& x){ result += ssSave(x, false); }, value);
+
+    return result;
+}
+
+template<size_t I, typename... Ts>
+void ssLoadImplVariant(BufferReader& buffer, std::variant<Ts...>& value, uint8_t readIndex)
+{
+    if constexpr (I < sizeof...(Ts)) {
+        if (I == readIndex) {
+            value = ssLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(buffer, false);
+
+        } else {
+            ssLoadImplVariant<I + 1>(buffer, value, readIndex);
+        }
+    } else {
+        assert(false && "Shouldn't get here!");
+    }
+}
+
+template<typename... Ts>
+void ssLoadImpl(BufferReader& buffer, std::variant<Ts...>& value)
+{
+    uint8_t index {};
+    buffer.read(index);
+    assert(index < sizeof...(Ts));
+    ssLoadImplVariant<0>(buffer, value, index);
 }
 
 template<typename T1, typename T2>
@@ -628,6 +672,52 @@ void ssJsonLoadImpl(const QJsonValue& src, std::pair<T1, T2>& dst)
     ssJsonLoad(obj["first"], dst.first, false);
     assert(obj.contains("second"));
     ssJsonLoad(obj["second"], dst.second, false);
+}
+
+inline QJsonValue ssJsonSaveImpl(const std::monostate& /*value*/)
+{
+    return {};
+}
+
+inline void ssJsonLoadImpl(const QJsonValue& /*src*/, std::monostate& /*value*/)
+{ }
+
+template<typename... Ts>
+QJsonValue ssJsonSaveImpl(const std::variant<Ts...>& value)
+{
+    QJsonObject result;
+    result["index"] = value.index();
+    std::visit([&result](const auto& x){ result["value"] = ssJsonSave(x, false); }, value);
+
+    return result;
+}
+
+template<size_t I, typename... Ts>
+void ssJsonLoadImplVariant(const QJsonValue& src, std::variant<Ts...>& value, uint8_t readIndex)
+{
+    if constexpr (I < sizeof...(Ts)) {
+        if (I == readIndex) {
+            std::get<I>(value) = ssLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(src, false);
+
+        } else {
+            ssJsonLoadImplVariant<I + 1>(src, value, readIndex);
+        }
+    } else {
+        assert(false && "Shouldn't get here!");
+    }
+}
+
+template<typename... Ts>
+void ssJsonLoadImpl(const QJsonValue& src, std::variant<Ts...>& value)
+{
+    QJsonObject obj = src.toObject();
+    assert(obj.contains("index") && obj["index"].isDouble());
+    assert(obj.contains("value"));
+
+    uint8_t index {};
+    ssJsonLoadImpl(obj.value("index"), index);
+    assert(index < sizeof...(Ts));
+    ssJsonLoadImplVariant<0>(obj.value("value"), value, index);
 }
 
 template<typename Rep, typename Period>

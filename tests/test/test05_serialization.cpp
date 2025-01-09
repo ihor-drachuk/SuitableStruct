@@ -44,8 +44,9 @@ struct SomeStruct2
     std::chrono::steady_clock::time_point g;
     std::chrono::hours h {};
     std::chrono::milliseconds i {};
+    std::variant<std::monostate, int, std::string> j;
 
-    auto ssTuple() const { return std::tie(struct1, c, d, e, f, g, h, i); }
+    auto ssTuple() const { return std::tie(struct1, c, d, e, f, g, h, i, j); }
 };
 
 SS_COMPARISONS_ONLY_EQ(SomeStruct2);
@@ -68,6 +69,7 @@ TEST(SuitableStruct, SerializationTest)
     value1.g = std::chrono::steady_clock::now();
     value1.h = std::chrono::hours(5);
     value1.i = std::chrono::milliseconds(123);
+    value1.j = "sdfg";
 
     SomeStruct2 value2;
     ASSERT_NE(value1, value2);
