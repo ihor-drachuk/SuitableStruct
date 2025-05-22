@@ -118,4 +118,86 @@ DECLARE_MEMBER_FUNCTION_TESTER(ssNamesTuple)
 DECLARE_MEMBER_FUNCTION_TESTER(ssJsonLoadImpl)
 DECLARE_MEMBER_FUNCTION_TESTER(ssJsonSaveImpl)
 
+DECLARE_MEMBER_FUNCTION_TESTER(ssBeforeSaveImpl)
+DECLARE_MEMBER_FUNCTION_TESTER(ssAfterSaveImpl)
+DECLARE_MEMBER_FUNCTION_TESTER(ssBeforeLoadImpl)
+DECLARE_MEMBER_FUNCTION_TESTER(ssAfterLoadImpl)
+
+// Before/After save/load hooks
+template<typename T,
+         typename std::enable_if<can_ssBeforeSaveImpl<T>::value>::type* = nullptr>
+void ssBeforeSaveImpl(const T& obj)
+{
+    obj.ssBeforeSaveImpl();
+}
+
+template<typename T,
+         typename std::enable_if<!can_ssBeforeSaveImpl<T>::value>::type* = nullptr>
+void ssBeforeSaveImpl(const T&)
+{
+}
+
+template<typename T,
+         typename std::enable_if<can_ssAfterSaveImpl<T>::value>::type* = nullptr>
+void ssAfterSaveImpl(const T& obj)
+{
+    obj.ssAfterSaveImpl();
+}
+
+template<typename T,
+         typename std::enable_if<!can_ssAfterSaveImpl<T>::value>::type* = nullptr>
+void ssAfterSaveImpl(const T&)
+{
+}
+
+template<typename T,
+         typename std::enable_if<can_ssBeforeLoadImpl<T>::value>::type* = nullptr>
+void ssBeforeLoadImpl(T& obj)
+{
+    obj.ssBeforeLoadImpl();
+}
+
+template<typename T,
+         typename std::enable_if<!can_ssBeforeLoadImpl<T>::value>::type* = nullptr>
+void ssBeforeLoadImpl(T&)
+{
+}
+
+template<typename T,
+         typename std::enable_if<can_ssAfterLoadImpl<T>::value>::type* = nullptr>
+void ssAfterLoadImpl(T& obj)
+{
+    obj.ssAfterLoadImpl();
+}
+
+template<typename T,
+         typename std::enable_if<!can_ssAfterLoadImpl<T>::value>::type* = nullptr>
+void ssAfterLoadImpl(T&)
+{
+}
+
+// Helper function for constructing objects with serializer tag if available
+template<typename T>
+[[nodiscard]] T construct()
+{
+    if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+        return T(SS_SERIALIZER_TAG{});
+    } else {
+        return T{};
+    }
+}
+
+// Pre/Post operation method definitions
+#define SS_DEFINE_BEFORE_SAVE_CONST() \
+    void ssBeforeSaveImpl() const
+
+#define SS_DEFINE_AFTER_SAVE_CONST() \
+    void ssAfterSaveImpl() const
+
+#define SS_DEFINE_BEFORE_LOAD() \
+    void ssBeforeLoadImpl()
+
+#define SS_DEFINE_AFTER_LOAD() \
+    void ssAfterLoadImpl()
+
 } // namespace SuitableStruct
