@@ -204,7 +204,7 @@ template<size_t I, typename T, typename T2,
 void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
 {
     using CurrentType = std::tuple_element_t<I, typename T::ssVersions>;
-    CurrentType tempObj;
+    auto tempObj = construct<CurrentType>();
     tempObj.ssConvertFrom(std::forward<T2&&>(srcObj));
     ssLoadAndConvertIter2<I+1>(obj, std::move(tempObj));
 }
@@ -237,7 +237,7 @@ void ssLoadAndConvertIter(BufferReader& buffer, T& obj, uint8_t serializedVer)
         // This is version, which is saved, but app uses newer version
 
         // Load old version
-        CurrentType oldObject;
+        auto oldObject = construct<CurrentType>();
         ssLoadImpl(buffer, oldObject);
 
         // Convert to new version
@@ -275,7 +275,7 @@ template<typename T>
 void ssLoad(BufferReader& buffer, T& obj, bool protectedMode /*= true*/)
 {
     if (protectedMode) {
-        T temp;
+        auto temp = construct<T>();
 
         uint64_t size;
         decltype(std::declval<Buffer>().hash()) /*uint32*/ hash;
@@ -321,7 +321,7 @@ void ssLoad(const Buffer& buffer, T& obj, bool protectedMode = true)
 template<typename T>
 [[nodiscard]] T ssLoadRet(BufferReader& reader, bool protectedMode /*= true*/)
 {
-    T result;
+    auto result = construct<T>();
     ssLoad(reader, result, protectedMode);
     return result;
 }
@@ -341,7 +341,7 @@ template<typename T>
 template<typename T>
 [[nodiscard]] T ssLoadImplRet(BufferReader& reader)
 {
-    T result;
+    auto result = construct<T>();
     ssLoadImpl(reader, result);
     return result;
 }

@@ -175,7 +175,7 @@ template<size_t I, typename T, typename T2,
 void ssJsonLoadAndConvertIter2(T& obj, const T2& srcObj)
 {
     using CurrentType = std::tuple_element_t<I, typename T::ssVersions>;
-    CurrentType tempObj;
+    auto tempObj = construct<CurrentType>();
     tempObj.ssConvertFrom(srcObj);
     ssJsonLoadAndConvertIter2<I+1>(obj, tempObj);
 }
@@ -208,7 +208,7 @@ void ssJsonLoadAndConvertIter(const QJsonValue& value, T& obj, uint8_t serialize
         // This is version, which is saved, but app uses newer version
 
         // Load old version
-        CurrentType oldObject;
+        auto oldObject = construct<CurrentType>();
         ssJsonLoadImpl(value, oldObject);
 
         // Convert to new version
@@ -278,7 +278,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
     }
 
     // Load
-    T temp;
+    auto temp = construct<T>();
     ssBeforeLoadImpl(temp);
     ssJsonLoadAndConvert(content, temp, ver);
     ssAfterLoadImpl(temp);
@@ -288,7 +288,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
 template<typename T>
 [[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
 {
-    T result;
+    auto result = construct<T>();
     ssJsonLoad(value, result, protectedMode);
     return result;
 }
@@ -296,7 +296,7 @@ template<typename T>
 template<typename T>
 [[nodiscard]] T ssJsonLoadImplRet(const QJsonValue& value)
 {
-    T result;
+    auto result = construct<T>();
     ssJsonLoadImpl(value, result);
     return result;
 }

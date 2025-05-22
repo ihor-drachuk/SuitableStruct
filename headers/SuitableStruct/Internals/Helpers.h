@@ -9,6 +9,9 @@
 
 namespace SuitableStruct {
 
+// Tag type for serializer-specific constructors
+struct SS_SERIALIZER_TAG { };
+
 template<typename T1, typename T2>
 struct tuple_cat
 {

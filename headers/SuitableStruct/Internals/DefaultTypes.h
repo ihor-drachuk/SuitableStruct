@@ -180,7 +180,11 @@ void ssLoadImpl(BufferReader& buffer, std::shared_ptr<T>& value)
     ssLoadImpl(buffer, hasValue);
 
     if (hasValue) {
-        value = std::make_shared<T>();
+        if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+            value = std::make_shared<T>(SS_SERIALIZER_TAG{});
+        } else {
+            value = std::make_shared<T>();
+        }
         ssLoad(buffer, *value, false);
     } else { // Just precaution
         value.reset();
@@ -206,7 +210,11 @@ void ssLoadImpl(BufferReader& buffer, std::unique_ptr<T>& value)
     ssLoadImpl(buffer, hasValue);
 
     if (hasValue) {
-        value = std::make_unique<T>();
+        if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+            value = std::make_unique<T>(SS_SERIALIZER_TAG{});
+        } else {
+            value = std::make_unique<T>();
+        }
         ssLoad(buffer, *value, false);
     } else { // Just precaution
         value.reset();
@@ -620,7 +628,12 @@ void ssJsonLoadSmartPtrImpl(const QJsonValue& src, SmartPtr<T, Args...>& dst)
 
     if (hasValue) {
         assert(obj.contains("content"));
-        SmartPtr<T, Args...> temp (new T);
+        SmartPtr<T, Args...> temp;
+        if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+            temp = SmartPtr<T, Args...>(new T(SS_SERIALIZER_TAG{}));
+        } else {
+            temp = SmartPtr<T, Args...>(new T());
+        }
         ssJsonLoad(obj["content"], *temp, false);
         dst = std::move(temp);
 
@@ -639,7 +652,11 @@ void ssJsonLoadSmartPtrImpl(const QJsonValue& src, std::optional<T>& dst)
 
     if (hasValue) {
         assert(obj.contains("content"));
-        dst.emplace();
+        if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+            dst.emplace(SS_SERIALIZER_TAG{});
+        } else {
+            dst.emplace();
+        }
         ssJsonLoad(obj["content"], *dst, false);
 
     } else {
