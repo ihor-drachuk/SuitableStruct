@@ -115,7 +115,9 @@ Buffer ssSave(const T& obj, bool protectedMode /*= true*/)
         Buffer part;
         part.writeZeros(5); // Global reserved
         ssWriteVersion<T>(part);
+        ssBeforeSaveImpl(obj);
         part += ssSaveImpl(obj);
+        ssAfterSaveImpl(obj);
 
         static_assert (sizeof(part.hash()) == sizeof(uint32_t), "Make sure save & load expect same type!");
         result.write(static_cast<uint64_t>(part.size()));
@@ -123,7 +125,9 @@ Buffer ssSave(const T& obj, bool protectedMode /*= true*/)
         result += part;
     } else {
         ssWriteVersion<T>(result);
+        ssBeforeSaveImpl(obj);
         result += ssSaveImpl(obj);
+        ssAfterSaveImpl(obj);
     }
 
     return result;
@@ -289,12 +293,16 @@ void ssLoad(BufferReader& buffer, T& obj, bool protectedMode /*= true*/)
 
         groupData.advance(5); // Reserved
         auto ver = ssReadVersion<T>(groupData);
+        ssBeforeLoadImpl(temp);
         ssLoadAndConvert(groupData, temp, ver);
+        ssAfterLoadImpl(temp);
         obj = std::move(temp);
 
     } else {
         auto ver = ssReadVersion<T>(buffer);
+        ssBeforeLoadImpl(obj);
         ssLoadAndConvert(buffer, obj, ver);
+        ssAfterLoadImpl(obj);
     }
 }
 

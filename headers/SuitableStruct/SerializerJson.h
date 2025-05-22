@@ -76,6 +76,7 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode /*= true*/)
     QJsonValue part1;
     const auto ver = ssVersion<T>();
 
+    ssBeforeSaveImpl(obj);
     if (ver) {
         QJsonObject contentAndVer;
         contentAndVer["content"] = ssJsonSaveImpl(obj);
@@ -84,6 +85,7 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode /*= true*/)
     } else {
         part1 = ssJsonSaveImpl(obj);
     }
+    ssAfterSaveImpl(obj);
 
     if (protectedMode) {
         auto hash = static_cast<uint32_t>(qHash(part1));
@@ -277,7 +279,9 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
 
     // Load
     T temp;
+    ssBeforeLoadImpl(temp);
     ssJsonLoadAndConvert(content, temp, ver);
+    ssAfterLoadImpl(temp);
     obj = std::move(temp);
 }
 
