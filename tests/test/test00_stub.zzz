@@ -1,3 +1,7 @@
+/* License:  MIT
+ * Source:   https://github.com/ihor-drachuk/SuitableStruct
+ * Contact:  ihor-drachuk-libs@pm.me  */
+
 #include <string>
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>
@@ -20,7 +24,7 @@ template<>
 struct Handlers<Struct_v0> : public std::true_type
 {
     static Buffer ssSaveImpl(const Struct_v0& v) { return Buffer::fromValue(v.a); }
-    static void ssLoadImpl(BufferReader& buffer, Struct_v0& value) { buffer.read(value.a); }
+    static void ssLoadImpl(BufferReader& bufferReader, Struct_v0& value) { bufferReader.read(value.a); }
     static uint32_t ssHashImpl(const Struct_v0& v) { return v.a; };
 };
 
@@ -34,7 +38,8 @@ struct Struct_v1
     auto ssTuple() const { return std::tie(a, b); }       // Serialization / Deserialization
 
     using ssVersions = std::tuple<Struct_v0, Struct_v1>; // Versioning
-    void ssConvertFrom(const Struct_v0& prev) { a = prev.a; }
+    void ssUpgradeFrom(const Struct_v0& prev) { a = prev.a; }
+    void ssDowngradeTo(Struct_v0& next) const { next.a = a; }
 };
 
 
@@ -87,7 +92,8 @@ struct Struct_v2
 
     using ssVersions = std::tuple<Struct_v0, Struct_v1, Struct_v2>; // Versioning
     auto ssTuple() const { return std::tie(a, b, c, d1, d2); }      // Serialization / Deserialization
-    void ssConvertFrom(const Struct_v1& prev) { a = prev.a; b = prev.b; c = "Q"; }
+    void ssUpgradeFrom(const Struct_v1& prev) { a = prev.a; b = prev.b; c = "Q"; }
+    void ssDowngradeTo(Struct_v1& next) const { next.a = a; next.b = static_cast<float>(b); }
 };
 
 SS_HASHES(Struct_v2);

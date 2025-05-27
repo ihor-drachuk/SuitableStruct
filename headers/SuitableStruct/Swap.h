@@ -38,7 +38,7 @@ swapTuples(const Struct& s, std::tuple<Tp...>& t1, std::tuple<Tp...>& t2)
 } // namespace SuitableStructInternal
 
 #define SS_SWAP_OP(STRUCT) \
-    inline void ssSwap(STRUCT& lhs, STRUCT& rhs) \
+    inline void ssSwap(STRUCT& lhs, STRUCT& rhs) /* NOLINT(bugprone-macro-parentheses) */ \
     { \
         using namespace SuitableStruct; \
         SuitableStructInternal::swapTuples(lhs, const_cast_tuple(lhs.ssTuple()), const_cast_tuple(rhs.ssTuple())); \

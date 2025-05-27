@@ -16,9 +16,9 @@
 #include <SuitableStruct/Internals/FwdDeclarations.h>
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Internals/Helpers.h>
-#include <SuitableStruct/Internals/Exceptions.h>
-#include <SuitableStruct/Handlers.h>
+#include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Serializer.h>
+#include <SuitableStruct/Handlers.h>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 #include <QtContainerFwd>
@@ -54,9 +54,9 @@ Buffer ssSaveImpl(T value)
 
 template<typename T,
          typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
-void ssLoadImpl(BufferReader& buffer, T& value)
+void ssLoadImpl(BufferReader& bufferReader, T& value)
 {
-    buffer.read(value);
+    bufferReader.read(value);
 }
 
 template<typename T>
@@ -66,20 +66,20 @@ Buffer ssSaveImpl(const std::optional<T>& value)
     result.write(value.has_value());
 
     if (value.has_value())
-        result += ssSave(value.value(), false);
+        result += ssSaveInternal(value.value());
 
     return result;
 }
 
 template<typename T>
-void ssLoadImpl(BufferReader& buffer, std::optional<T>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::optional<T>& value)
 {
     bool hasValue;
-    ssLoadImpl(buffer, hasValue);
+    ssLoadImpl(bufferReader, hasValue);
 
     if (hasValue) {
         value.emplace();
-        ssLoad(buffer, *value, false);
+        ssLoadInternal(bufferReader, *value);
     } else { // Just precaution
         value.reset();
     }
@@ -90,7 +90,7 @@ inline Buffer ssSaveImpl(const std::monostate& /*value*/)
     return {};
 }
 
-inline void ssLoadImpl(BufferReader& /*buffer*/, std::monostate& /*value*/)
+inline void ssLoadImpl(BufferReader& /*bufferReader*/, std::monostate& /*value*/)
 { }
 
 template<typename... Ts>
@@ -99,20 +99,20 @@ Buffer ssSaveImpl(const std::variant<Ts...>& value)
     Buffer result;
     result.write(static_cast<uint8_t>(value.index()));
 
-    std::visit([&result](const auto& x){ result += ssSave(x, false); }, value);
+    std::visit([&result](const auto& x){ result += ssSaveInternal(x); }, value);
 
     return result;
 }
 
 template<size_t I, typename... Ts>
-void ssLoadImplVariant(BufferReader& buffer, std::variant<Ts...>& value, uint8_t readIndex)
+void ssLoadImplVariant(BufferReader& bufferReader, std::variant<Ts...>& value, uint8_t readIndex)
 {
     if constexpr (I < sizeof...(Ts)) {
         if (I == readIndex) {
-            value = ssLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(buffer, false);
+            value = ssLoadInternalRet<std::variant_alternative_t<I, std::variant<Ts...>>>(bufferReader);
 
         } else {
-            ssLoadImplVariant<I + 1>(buffer, value, readIndex);
+            ssLoadImplVariant<I + 1>(bufferReader, value, readIndex);
         }
     } else {
         assert(false && "Shouldn't get here!");
@@ -120,40 +120,40 @@ void ssLoadImplVariant(BufferReader& buffer, std::variant<Ts...>& value, uint8_t
 }
 
 template<typename... Ts>
-void ssLoadImpl(BufferReader& buffer, std::variant<Ts...>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::variant<Ts...>& value)
 {
     uint8_t index {};
-    buffer.read(index);
+    bufferReader.read(index);
     assert(index < sizeof...(Ts));
-    ssLoadImplVariant<0>(buffer, value, index);
+    ssLoadImplVariant<0>(bufferReader, value, index);
 }
 
 template<typename T1, typename T2>
 Buffer ssSaveImpl(const std::pair<T1, T2>& value)
 {
     Buffer result;
-    result += ssSave(value.first, false);
-    result += ssSave(value.second, false);
+    result += ssSaveInternal(value.first);
+    result += ssSaveInternal(value.second);
     return result;
 }
 
 template<typename T1, typename T2>
-void ssLoadImpl(BufferReader& buffer, std::pair<T1, T2>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::pair<T1, T2>& value)
 {
-    ssLoad(buffer, value.first, false);
-    ssLoad(buffer, value.second, false);
+    ssLoadInternal(bufferReader, value.first);
+    ssLoadInternal(bufferReader, value.second);
 }
 
 template<typename Rep, typename Period>
 Buffer ssSaveImpl(const std::chrono::duration<Rep, Period>& value)
 {
-    return ssSave(value.count(), false);
+    return ssSaveInternal(value.count());
 }
 
 template<typename Rep, typename Period>
-void ssLoadImpl(BufferReader& buffer, std::chrono::duration<Rep, Period>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::chrono::duration<Rep, Period>& value)
 {
-    value = std::chrono::duration<Rep, Period>(ssLoadRet<Rep>(buffer, false));
+    value = std::chrono::duration<Rep, Period>(ssLoadInternalRet<Rep>(bufferReader));
 }
 
 template<typename Clock, typename Duration>
@@ -175,37 +175,37 @@ Buffer ssSaveImpl(const std::chrono::time_point<Clock, Duration>& value)
 }
 
 template<typename Clock, typename Duration>
-void ssLoadImpl(BufferReader& buffer, std::chrono::time_point<Clock, Duration>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::chrono::time_point<Clock, Duration>& value)
 {
-    const auto initialPos = buffer.position();
+    const auto initialPos = bufferReader.position();
     uint64_t markerLow {};
     uint64_t markerHigh {};
 
     try {
-        buffer.read(markerLow);
-        buffer.read(markerHigh);
+        bufferReader.read(markerLow);
+        bufferReader.read(markerHigh);
     } catch (...) {
-        buffer.seek(initialPos);
+        bufferReader.seek(initialPos);
     }
 
     if (markerLow == Helpers::Timepoint_Marker_v2_Low && markerHigh == Helpers::Timepoint_Marker_v2_High) {
         // New format data
         if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
-            const auto durationSinceEpoch = ssLoadRet<Duration>(buffer, false);
+            const auto durationSinceEpoch = ssLoadRet<Duration>(bufferReader, false);
             const auto systemTp = std::chrono::system_clock::time_point{} + durationSinceEpoch;
             const auto diffFromNow = systemTp - std::chrono::system_clock::now();
             const auto steadyTp = Clock::now() + diffFromNow; // Possible time drift here
             value = steadyTp;
         } else {
-            value = std::chrono::time_point<Clock, Duration>(ssLoadRet<Duration>(buffer, false));
+            value = std::chrono::time_point<Clock, Duration>(ssLoadRet<Duration>(bufferReader, false));
         }
     } else {
         // Old format data
-        buffer.seek(initialPos);
+        bufferReader.seek(initialPos);
 
-        if constexpr (std::is_same_v<Clock, std::chrono::high_resolution_clock>) {
-            using T = std::chrono::high_resolution_clock::duration;
-            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(buffer, false)));
+        if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+            using T = std::chrono::steady_clock::duration;
+            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(bufferReader, false)));
         } else {
             assert(false && "Previous implementation couldn't save other timepoint types!");
         }
@@ -219,16 +219,16 @@ Buffer ssSaveImpl(const std::shared_ptr<T>& value)
     result.write(!!value);
 
     if (value)
-        result += ssSave(*value, false);
+        result += ssSaveInternal(*value);
 
     return result;
 }
 
 template<typename T>
-void ssLoadImpl(BufferReader& buffer, std::shared_ptr<T>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::shared_ptr<T>& value)
 {
     bool hasValue;
-    ssLoadImpl(buffer, hasValue);
+    ssLoadImpl(bufferReader, hasValue);
 
     if (hasValue) {
         if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
@@ -236,7 +236,7 @@ void ssLoadImpl(BufferReader& buffer, std::shared_ptr<T>& value)
         } else {
             value = std::make_shared<T>();
         }
-        ssLoad(buffer, *value, false);
+        ssLoadInternal(bufferReader, *value);
     } else { // Just precaution
         value.reset();
     }
@@ -249,16 +249,16 @@ Buffer ssSaveImpl(const std::unique_ptr<T>& value)
     result.write(!!value);
 
     if (value)
-        result += ssSave(*value, false);
+        result += ssSaveInternal(*value);
 
     return result;
 }
 
 template<typename T>
-void ssLoadImpl(BufferReader& buffer, std::unique_ptr<T>& value)
+void ssLoadImpl(BufferReader& bufferReader, std::unique_ptr<T>& value)
 {
     bool hasValue;
-    ssLoadImpl(buffer, hasValue);
+    ssLoadImpl(bufferReader, hasValue);
 
     if (hasValue) {
         if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
@@ -266,14 +266,14 @@ void ssLoadImpl(BufferReader& buffer, std::unique_ptr<T>& value)
         } else {
             value = std::make_unique<T>();
         }
-        ssLoad(buffer, *value, false);
+        ssLoadInternal(bufferReader, *value);
     } else { // Just precaution
         value.reset();
     }
 }
 
 Buffer ssSaveImpl(const std::string& value);
-void ssLoadImpl(BufferReader& buffer, std::string& value);
+void ssLoadImpl(BufferReader& bufferReader, std::string& value);
 
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
@@ -282,23 +282,23 @@ template<typename... Args> struct IsContainer<QList<Args...>> : public std::true
 template<>                 struct IsContainer<QStringList> : public std::true_type { };
 
 Buffer ssSaveImpl(const QByteArray& value);
-void ssLoadImpl(BufferReader& buffer, QByteArray& value);
+void ssLoadImpl(BufferReader& bufferReader, QByteArray& value);
 Buffer ssSaveImpl(const QString& value);
-void ssLoadImpl(BufferReader& buffer, QString& value);
+void ssLoadImpl(BufferReader& bufferReader, QString& value);
 Buffer ssSaveImpl(const QPoint& value);
-void ssLoadImpl(BufferReader& buffer, QPoint& value);
+void ssLoadImpl(BufferReader& bufferReader, QPoint& value);
 Buffer ssSaveImpl(const QColor& value);
-void ssLoadImpl(BufferReader& buffer, QColor& value);
+void ssLoadImpl(BufferReader& bufferReader, QColor& value);
 Buffer ssSaveImpl(const QJsonValue& value);
-void ssLoadImpl(BufferReader& buffer, QJsonValue& value);
+void ssLoadImpl(BufferReader& bufferReader, QJsonValue& value);
 Buffer ssSaveImpl(const QTimeZone& value);
-void ssLoadImpl(BufferReader& buffer, QTimeZone& value);
+void ssLoadImpl(BufferReader& bufferReader, QTimeZone& value);
 Buffer ssSaveImpl(const QDate& value);
-void ssLoadImpl(BufferReader& buffer, QDate& value);
+void ssLoadImpl(BufferReader& bufferReader, QDate& value);
 Buffer ssSaveImpl(const QTime& value);
-void ssLoadImpl(BufferReader& buffer, QTime& value);
+void ssLoadImpl(BufferReader& bufferReader, QTime& value);
 Buffer ssSaveImpl(const QDateTime& value);
-void ssLoadImpl(BufferReader& buffer, QDateTime& value);
+void ssLoadImpl(BufferReader& bufferReader, QDateTime& value);
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 template<typename C>
@@ -309,7 +309,7 @@ Buffer ssSaveContainerImpl (const C& value)
     result.write(static_cast<uint64_t>(size));
 
     for (const auto& x : value)
-        result += ssSave(x, false);
+        result += ssSaveInternal(x);
 
     return result;
 }
@@ -330,19 +330,19 @@ Buffer ssSaveImpl (const C<T,N>& value)
 }
 
 template<typename C>
-void ssLoadContainerImpl (BufferReader& buffer, C& value)
+void ssLoadContainerImpl (BufferReader& bufferReader, C& value)
 {
     using T = typename ContainerItemType<C>::type;
 
     uint64_t sz;
-    buffer.read(sz);
+    bufferReader.read(sz);
 
     C result;
     auto sIt = ContainerInserter<C>::get(result);
 
     for (uint64_t i = 0; i < sz; i++) {
         T item;
-        ssLoad(buffer, item, false);
+        ssLoadInternal(bufferReader, item);
         *sIt++ = std::move(item);
     }
 
@@ -351,32 +351,32 @@ void ssLoadContainerImpl (BufferReader& buffer, C& value)
 
 template<typename C,
          typename std::enable_if_t<IsContainer<C>::value>* = nullptr>
-void ssLoadImpl (BufferReader& buffer, C& value)
+void ssLoadImpl (BufferReader& bufferReader, C& value)
 {
-    ssLoadContainerImpl(buffer, value);
+    ssLoadContainerImpl(bufferReader, value);
 }
 
 // std::array<T, N>
 template<template<typename, size_t> typename C, typename T, size_t N,
          typename std::enable_if_t<IsContainer<C<T,N>>::value>* = nullptr>
-void ssLoadImpl (BufferReader& buffer, C<T,N>& value)
+void ssLoadImpl (BufferReader& bufferReader, C<T,N>& value)
 {
-    ssLoadContainerImpl(buffer, value);
+    ssLoadContainerImpl(bufferReader, value);
 }
 
 template<typename... Args>
 Buffer ssSaveImpl (const std::tuple<Args...>& value)
 {
     Buffer result;
-    auto saver = [&result](const auto& x){ result += ssSave(x, false); };
+    auto saver = [&result](const auto& x){ result += ssSaveInternal(x); };
     std::apply([&saver](const auto&... xs){ (saver(xs), ...); }, value);
     return result;
 }
 
 template<typename... Args>
-void ssLoadImpl (BufferReader& buffer, std::tuple<Args...>& value)
+void ssLoadImpl (BufferReader& bufferReader, std::tuple<Args...>& value)
 {
-    auto loader = [&buffer](auto& x){ ssLoad(buffer, x, false); };
+    auto loader = [&bufferReader](auto& x){ ssLoadInternal(bufferReader, x); };
     std::apply([&loader](auto&... xs){ (loader(xs), ...); }, value);
 }
 
@@ -836,8 +836,8 @@ void ssJsonLoadImpl(const QJsonValue& src, std::chrono::time_point<Clock, Durati
         }
     } else {
         // Old format data
-        if constexpr (std::is_same_v<Clock, std::chrono::high_resolution_clock>) {
-            using T = std::chrono::high_resolution_clock::duration;
+        if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+            using T = std::chrono::steady_clock::duration;
             value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, false)));
         } else {
             assert(false && "Previous implementation couldn't save other timepoint types!");

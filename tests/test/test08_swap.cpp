@@ -17,8 +17,8 @@ struct SomeStruct1
     auto ssTuple() const { return std::tie(a, b); }
 };
 
-SS_COMPARISONS(SomeStruct1);
-SS_SWAP(SomeStruct1);
+SS_COMPARISONS(SomeStruct1)
+SS_SWAP(SomeStruct1)
 
 struct SomeStruct2
 {
@@ -28,8 +28,8 @@ struct SomeStruct2
     auto ssTuple() const { return std::tie(struct1, c); }
 };
 
-SS_COMPARISONS(SomeStruct2);
-SS_SWAP(SomeStruct2);
+SS_COMPARISONS(SomeStruct2)
+SS_SWAP(SomeStruct2)
 
 
 TEST(SuitableStruct, SwapTest)
@@ -42,8 +42,8 @@ TEST(SuitableStruct, SwapTest)
     b.a = 10;
     b.b = "QWE";
 
-    auto backupA = a;
-    auto backupB = b;
+    const auto backupA = a;
+    const auto backupB = b;
 
     ssSwap(a, b);
 
@@ -58,8 +58,8 @@ TEST(SuitableStruct, SwapTest)
     b2.struct1 = backupB;
     b2.c = 3;
 
-    auto backupA2 = a2;
-    auto backupB2 = b2;
+    const auto backupA2 = a2;
+    const auto backupB2 = b2;
 
     ssSwap(a2, b2);
 

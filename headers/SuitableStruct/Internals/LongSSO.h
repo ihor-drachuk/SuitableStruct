@@ -16,27 +16,27 @@ using ExternalSSOBuffer = std::vector<uint8_t>;
 template<size_t sso_limit = 80>
 class LongSSO {
 public:
-    inline LongSSO() {
+    LongSSO() {
     }
 
-    inline LongSSO(ExternalSSOBuffer& cache) {
+    LongSSO(ExternalSSOBuffer& cache) {
         m_longBuf = &cache;
     }
 
-    inline LongSSO(const LongSSO& rhs) {
+    LongSSO(const LongSSO& rhs) {
         allocate_copy(rhs.size(), rhs.cdata());
     }
 
-    inline LongSSO(LongSSO&& rhs) noexcept {
+    LongSSO(LongSSO&& rhs) noexcept {
         *this = std::move(rhs);
     }
 
-    inline ~LongSSO() {
+    ~LongSSO() {
         if (m_deleteLongBuf)
             delete m_longBuf;
     }
 
-    inline LongSSO& operator=(const LongSSO& rhs) {
+    LongSSO& operator=(const LongSSO& rhs) { // NOLINT(bugprone-unhandled-self-assignment)
         if (this == &rhs) return *this;
 
         *this = std::move(LongSSO(rhs));
@@ -44,7 +44,7 @@ public:
         return *this;
     }
 
-    inline LongSSO& operator=(LongSSO&& rhs) noexcept {
+    LongSSO& operator=(LongSSO&& rhs) noexcept {
         if (this == &rhs) return *this;
 
         if (m_deleteLongBuf)
@@ -63,10 +63,10 @@ public:
         return *this;
     }
 
-    inline explicit operator bool() const { return size() != 0; }
+    explicit operator bool() const { return size() != 0; }
 
     template<size_t limit>
-    inline bool operator==(const LongSSO<limit>& rhs) const {
+    bool operator==(const LongSSO<limit>& rhs) const {
         if (static_cast<const void*>(this) == static_cast<const void*>(&rhs))
             return true;
 
@@ -77,9 +77,9 @@ public:
     }
 
     template<size_t limit>
-    inline bool operator!=(const LongSSO<limit>& rhs) const { return !(*this == rhs); }
+    bool operator!=(const LongSSO<limit>& rhs) const { return !(*this == rhs); }
 
-    inline uint8_t* allocate_copy(size_t sz, const uint8_t* buffer = nullptr) {
+    uint8_t* allocate_copy(size_t sz, const uint8_t* buffer = nullptr) {
         if (m_isShortBuf) {
             // Short buffer
             size_t newSz = m_sz + sz;
@@ -110,11 +110,11 @@ public:
         }
     }
 
-    inline void appendData(const uint8_t* buffer, size_t sz) {
+    void appendData(const uint8_t* buffer, size_t sz) {
         allocate_copy(sz, buffer);
     }
 
-    inline void reduceSize(size_t amount) {
+    void reduceSize(size_t amount) {
         if (m_isShortBuf) {
             assert(m_sz >= amount || !"Not enough data!");
             m_sz -= amount;
@@ -125,22 +125,22 @@ public:
         }
     }
 
-    inline uint8_t* data() { return reinterpret_cast<uint8_t*>(m_isShortBuf ? m_buf : m_longBuf->data()); }
-    inline const uint8_t* data() const { return reinterpret_cast<const uint8_t*>(m_isShortBuf ? m_buf : m_longBuf->data()); }
-    inline const uint8_t* cdata() const { return data(); }
-    inline size_t size() const { return m_isShortBuf ? m_sz : (m_longBuf->size()); }
+    uint8_t* data() { return m_isShortBuf ? m_buf : m_longBuf->data(); }
+    const uint8_t* data() const { return m_isShortBuf ? m_buf : m_longBuf->data(); }
+    const uint8_t* cdata() const { return data(); }
+    size_t size() const { return m_isShortBuf ? m_sz : (m_longBuf->size()); }
 
     static constexpr size_t getSsoLimit() { return sso_limit; }
-    inline bool isShortBuf() const { return m_isShortBuf; }
+    bool isShortBuf() const { return m_isShortBuf; }
 
-    inline void clear() {
+    void clear() {
         m_sz = 0;
         m_buf[0] = 0;
         m_isShortBuf = true;
     }
 
 private:
-    inline uint8_t* makeLong(size_t addSz) {
+    uint8_t* makeLong(size_t addSz) {
         assert(m_isShortBuf);
 
         size_t newSz = m_sz + addSz;

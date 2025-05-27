@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/Comparisons.h>
-#include <SuitableStruct/Internals/Exceptions.h>
+#include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Containers/vector.h>
 #include <vector>
 #include <optional>

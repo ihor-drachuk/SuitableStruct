@@ -7,6 +7,8 @@
 #include <SuitableStruct/Internals/Helpers.h>
 #include <cstdint>
 #include <type_traits>
+#include <memory>
+#include <optional>
 
 
 namespace SuitableStruct {
@@ -16,7 +18,30 @@ template<typename T>
 uint32_t ssHash(const T& value);
 
 // ssHash. Tools
+uint32_t ssHashRaw_F0(const void* ptr, size_t sz); // Legacy
+uint32_t ssHashRaw_F1(const void* ptr, size_t sz);
 uint32_t ssHashRaw(const void* ptr, size_t sz);
+
+namespace Internal {
+
+// Smart pointer hash implementations - hash the content, not the pointer
+template<typename T>
+uint32_t ssHashImpl(const std::shared_ptr<T>& value)
+{
+    return value ? ssHash(*value) : 0;
+}
+
+template<typename T>
+uint32_t ssHashImpl(const std::unique_ptr<T>& value)
+{
+    return value ? ssHash(*value) : 0;
+}
+
+template<typename T>
+uint32_t ssHashImpl(const std::optional<T>& value)
+{
+    return value ? ssHash(*value) : 0;
+}
 
 template<typename T,
          typename std::enable_if<
@@ -81,12 +106,12 @@ uint32_t ssHashImpl(const T& obj)
     return ssHashImpl(obj.ssTuple());
 }
 
-uint32_t ssHashRaw(const void* ptr, size_t sz);
+} // namespace Internal
 
 template<typename T>
 uint32_t ssHash(const T& value)
 {
-    return ssHashImpl(value);
+    return Internal::ssHashImpl(value);
 }
 
 } // namespace SuitableStruct
@@ -95,7 +120,7 @@ uint32_t ssHash(const T& value)
 #define SS_HASHES(STRUCT) \
     inline unsigned int qHash(const STRUCT& s, unsigned int seed = 0) \
     { \
-        return SuitableStruct::combineHash(SuitableStruct::ssHashImpl(s), seed); \
+        return SuitableStruct::Internal::combineHash(SuitableStruct::Internal::ssHashImpl(s), seed); \
     } \
      \
     namespace std { \
@@ -104,7 +129,7 @@ uint32_t ssHash(const T& value)
     { \
         std::size_t operator()(const STRUCT& k) const \
         { \
-            return SuitableStruct::ssHashImpl(k); \
+            return SuitableStruct::Internal::ssHashImpl(k); \
         } \
     }; \
     } /*namespace std*/

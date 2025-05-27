@@ -50,8 +50,31 @@ struct Struct1
 
     auto ssTuple() const { return std::tie(a, b); }
     auto ssNamesTuple() const { return std::tie("a", "b"); }
-    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1);
+    SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1)
 };
+
+struct Struct2
+{
+    int x {};
+    std::string y;
+
+    bool operator==(const Struct2& rhs) const { return x == rhs.x && y == rhs.y; }
+    bool operator!=(const Struct2& rhs) const { return !(*this == rhs); }
+};
+
+Buffer ssSaveImpl(const Struct2& value)
+{
+    Buffer result;
+    result += ssSave(value.x, false);
+    result += ssSave(value.y, false);
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, Struct2& value)
+{
+    ssLoad(bufferReader, value.x, false);
+    ssLoad(bufferReader, value.y, false);
+}
 
 } // namespace
 
@@ -60,7 +83,7 @@ TEST(SuitableStruct, CustomHandlers)
     Struct1 initial, deserialized;
     initial.b.value = 127;
 
-    auto buffer = ssSave(initial);
+    const auto buffer = ssSave(initial);
     ASSERT_NE(initial, deserialized);
     ssLoad(buffer, deserialized);
     ASSERT_EQ(initial, deserialized);
@@ -73,10 +96,22 @@ TEST(SuitableStruct, CustomHandlers_Json)
     Struct1 initial, deserialized;
     initial.b.value = 127;
 
-    auto buffer = ssJsonSave(initial);
+    const auto buffer = ssJsonSave(initial);
     ASSERT_NE(initial, deserialized);
     ssJsonLoad(buffer, deserialized);
     ASSERT_EQ(initial, deserialized);
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
+TEST(SuitableStruct, CustomHandlers_Struct2)
+{
+    Struct2 initial, deserialized;
+    initial.x = 42;
+    initial.y = "test string";
+
+    const auto buffer = ssSave(initial);
+    ASSERT_NE(initial, deserialized);
+    ssLoad(buffer, deserialized);
+    ASSERT_EQ(initial, deserialized);
+}

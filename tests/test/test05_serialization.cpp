@@ -30,7 +30,7 @@ struct SomeStruct1
     auto ssTuple() const { return std::tie(a, b); }
 };
 
-SS_COMPARISONS(SomeStruct1);
+SS_COMPARISONS(SomeStruct1)
 
 struct SomeStruct2
 {
@@ -52,7 +52,7 @@ struct SomeStruct2
     auto ssTuple() const { return std::tie(struct1, c, d, e, f, g1, g2, h, i, j); }
 };
 
-SS_COMPARISONS_ONLY_EQ(SomeStruct2);
+SS_COMPARISONS_ONLY_EQ(SomeStruct2)
 
 inline bool compare_eq(const SomeStruct2&, const std::chrono::steady_clock::time_point& a, const std::chrono::steady_clock::time_point& b)
 {
@@ -102,36 +102,30 @@ TEST(SuitableStruct, SerializationTest)
 
 TEST(SuitableStruct, SerializationTest_Corruption)
 {
-    auto trySaveLoad = [](int byteToCorrupt = -1, size_t reduceSize = 0) {
-        SomeStruct2 value1;
+    SomeStruct2 initialStruct;
+    initialStruct.struct1.a = 1;
+    initialStruct.struct1.b = "sdfsdf";
+    initialStruct.c = 2.5;
 
-        value1.struct1.a = 1;
-        value1.struct1.b = "sdfsdf";
-        value1.c = 2.5;
-
-        SomeStruct2 value2;
-        ASSERT_NE(value1, value2);
-
-        auto saved = ssSave(value1);
-
-        if (byteToCorrupt >= 0) {
-            assert((unsigned)byteToCorrupt < saved.size());
-            saved.data()[byteToCorrupt]++;
-        }
-
-        saved.reduceSize(reduceSize);
-
-        ASSERT_THROW(ssLoad(saved, value2), std::exception);
-    };
-
-    size_t len = ssSave(SomeStruct2()).size();
+    const auto savedBuffer = ssSave(initialStruct);
+    const auto len = savedBuffer.size();
 
     for (size_t i = 0; i < len; i++) {
-        trySaveLoad(i);
+        SomeStruct2 value2;
+        ASSERT_NE(initialStruct, value2);
+
+        auto savedCopy = savedBuffer;
+        savedCopy.data()[i]++;
+        ASSERT_THROW(ssLoad(savedCopy, value2), std::exception);
     }
 
-    for (size_t i = 1; i < 20; i++) {
-        trySaveLoad(-1, i);
+    for (size_t i = 1; i < len; i++) {
+        SomeStruct2 value2;
+        ASSERT_NE(initialStruct, value2);
+
+        auto savedCopy = savedBuffer;
+        savedCopy.reduceSize(i);
+        ASSERT_THROW(ssLoad(savedCopy, value2), std::exception);
     }
 }
 

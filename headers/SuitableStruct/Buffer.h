@@ -49,6 +49,28 @@ public:
     Buffer& operator+= (const Buffer& rhs);
     Buffer& operator+= (Buffer&& rhs);
 
+    friend Buffer operator+ (const Buffer& lhs, const Buffer& rhs) {
+        Buffer result(lhs);
+        result += rhs;
+        return result;
+    }
+
+    friend Buffer operator+ (Buffer&& lhs, const Buffer& rhs) {
+        lhs += rhs;
+        return std::move(lhs);
+    }
+
+    friend Buffer operator+ (const Buffer& lhs, Buffer&& rhs) {
+        Buffer result(lhs);
+        result += std::move(rhs);
+        return result;
+    }
+
+    friend Buffer operator+ (Buffer&& lhs, Buffer&& rhs) {
+        lhs += std::move(rhs);
+        return std::move(lhs);
+    }
+
     void write(const Buffer& buffer);
     void write(Buffer&& buffer);
     template<typename T,
@@ -59,6 +81,7 @@ public:
     void writeRaw(const void* ptr, size_t sz) { m_sso.allocate_copy(sz, static_cast<const uint8_t*>(ptr)); }
 
     uint32_t hash() const;
+    uint32_t hashLegacy() const;
     size_t size() const { return m_sso.size(); }
     void reduceSize(size_t amount) { m_sso.reduceSize(amount); }
 

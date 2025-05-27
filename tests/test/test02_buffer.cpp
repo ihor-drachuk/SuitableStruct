@@ -16,8 +16,8 @@ void bufferTester()
     char data[dataSz];
     const char strHello[] = "Hello";
     const char strWorld[] = "world";
-    const auto strHelloSz = sizeof(strHello) - 1;
-    const auto strWorldSz = sizeof(strWorld) - 1;
+    constexpr auto strHelloSz = sizeof(strHello) - 1;
+    constexpr auto strWorldSz = sizeof(strWorld) - 1;
 
     memset(data, 1, dataSz);
     memcpy(data, strHello, strHelloSz);
@@ -70,11 +70,64 @@ TEST(SuitableStruct, BufferTest_getBuffer)
     reader.read(tmp);
     ASSERT_EQ(tmp, 'e');
 
-    auto buf1 = reader.bufferSrc();
-    auto buf2 = reader.bufferMapped();
-    auto buf3 = reader.bufferRest();
+    const auto buf1 = reader.bufferSrc();
+    const auto buf2 = reader.bufferMapped();
+    const auto buf3 = reader.bufferRest();
 
     ASSERT_EQ(buf1, Buffer::fromConstChar("Hello"));
     ASSERT_EQ(buf2, Buffer::fromConstChar("ello"));
     ASSERT_EQ(buf3, Buffer::fromConstChar("llo"));
+}
+
+TEST(SuitableStruct, BufferReader_Advance)
+{
+    const char strHello[] = "Hello";
+    Buffer buf(strHello, 5);
+    BufferReader reader(buf);
+
+    // Test advancing to negative position from start (should throw)
+    ASSERT_EQ(reader.position(), 0);
+    ASSERT_THROW(reader.advance(-1), std::out_of_range);
+    ASSERT_EQ(reader.position(), 0); // Position should remain unchanged after failed advance
+
+    // Advance to middle position
+    reader.advance(2);
+    ASSERT_EQ(reader.position(), 2);
+
+    // Valid negative advance
+    reader.advance(-1);
+    ASSERT_EQ(reader.position(), 1);
+
+    // Try to advance beyond beginning (should throw)
+    ASSERT_THROW(reader.advance(-2), std::out_of_range);
+    ASSERT_EQ(reader.position(), 1); // Position should remain unchanged after failed advance
+
+    // Advance to end
+    reader.advance(4);
+    ASSERT_EQ(reader.position(), 5);
+
+    // Try to advance beyond end (should throw)
+    ASSERT_THROW(reader.advance(1), std::out_of_range);
+    ASSERT_EQ(reader.position(), 5); // Position should remain unchanged after failed advance
+}
+
+TEST(SuitableStruct, BufferReader_SeekBeyondBounds)
+{
+    const char strHello[] = "Hello";
+    Buffer buf(strHello, 5);
+    BufferReader reader(buf);
+
+    // Valid seeks
+    ASSERT_EQ(reader.seek(0), 0);
+    ASSERT_EQ(reader.position(), 0);
+
+    ASSERT_EQ(reader.seek(3), 3);
+    ASSERT_EQ(reader.position(), 3);
+
+    ASSERT_EQ(reader.seek(5), 5); // Seek to end is valid
+    ASSERT_EQ(reader.position(), 5);
+
+    // Invalid seek beyond bounds (should throw)
+    ASSERT_THROW(reader.seek(6), std::out_of_range);
+    ASSERT_THROW(reader.seek(100), std::out_of_range);
 }
