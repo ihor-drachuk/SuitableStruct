@@ -703,7 +703,7 @@ template<typename... Ts>
 QJsonValue ssJsonSaveImpl(const std::variant<Ts...>& value)
 {
     QJsonObject result;
-    result["index"] = value.index();
+    result["index"] = static_cast<int>(value.index());
     std::visit([&result](const auto& x){ result["value"] = ssJsonSave(x, false); }, value);
 
     return result;
@@ -714,7 +714,7 @@ void ssJsonLoadImplVariant(const QJsonValue& src, std::variant<Ts...>& value, ui
 {
     if constexpr (I < sizeof...(Ts)) {
         if (I == readIndex) {
-            std::get<I>(value) = ssLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(src, false);
+            value = ssJsonLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(src, false);
 
         } else {
             ssJsonLoadImplVariant<I + 1>(src, value, readIndex);
