@@ -2,8 +2,11 @@
  * Source:   https://github.com/ihor-drachuk/SuitableStruct
  * Contact:  ihor-drachuk-libs@pm.me  */
 
-// Uncomment the line below to switch to GENERATE mode
-//#define GENERATE_MODE
+// Replace by "1" to enable test/generator
+#if 0
+
+// Uncomment to switch to GENERATE mode
+#define GENERATE_MODE
 
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>
@@ -230,3 +233,5 @@ TEST(SuitableStruct, NewFormatIntegrityCheck_BuffersHaveCorrectFormatMarkers)
     }
 }
 #endif // !GENERATE_MODE
+
+#endif // 0
