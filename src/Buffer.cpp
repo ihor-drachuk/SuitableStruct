@@ -58,8 +58,12 @@ Buffer& Buffer::operator+= (Buffer&& rhs)
 
 uint32_t Buffer::hash() const
 {
-    const auto sz = size();
-    return sz ? ssHashRaw(data(), sz) : 0;
+    return ssHashRaw(data(), size());
+}
+
+uint32_t Buffer::hashLegacy() const
+{
+    return ssHashRaw_F0(data(), size());
 }
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY

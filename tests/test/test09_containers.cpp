@@ -94,7 +94,7 @@ TEST(SuitableStruct, ContainersTest)
     a1.j = {{10, "10"}, {11, "11"}};
     a1.k = {{12, "12"}, {13, "13"}};
 
-    auto buf = ssSave(a1);
+    const auto buf = ssSave(a1);
     ssLoad(buf, a2);
 
     ASSERT_EQ(a1, a2);
@@ -108,7 +108,7 @@ TEST(SuitableStruct, TupleTest)
     b = 2.34f;
     c.d = {1,2,3};
 
-    auto buf = ssSave(value1);
+    const auto buf = ssSave(value1);
     ssLoad(buf, value2);
     ASSERT_EQ(value1, value2);
 }

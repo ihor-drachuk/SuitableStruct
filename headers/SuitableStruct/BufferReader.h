@@ -16,24 +16,27 @@ class BufferReader
 public:
     // Make sure lifetime of 'buffer' is greater than 'BufferReader's.
     BufferReader(const Buffer& buffer,
-                 std::optional<size_t> offsetStart = {},
-                 std::optional<size_t> len = {},
-                 std::optional<size_t> offsetEnd = {})
+                 std::optional<size_t> optOffsetStart = {},
+                 std::optional<size_t> optLen = {},
+                 std::optional<size_t> optOffsetEnd = {})
         : m_buffer(buffer)
     {
-        assert((!len && !offsetEnd) ||
-               (len.has_value() ^ offsetEnd.has_value()));
+        assert((!optLen && !optOffsetEnd) ||
+               (optLen.has_value() ^ optOffsetEnd.has_value()));
 
-        m_offsetStart = offsetStart.value_or(0);
+        m_offsetStart = optOffsetStart.value_or(0);
+        assert(m_offsetStart <= buffer.size());
 
-        if (len) {
-            m_offsetEnd = m_offsetStart + *len;
-        } else if (offsetEnd) {
-            m_offsetEnd = offsetEnd;
+        if (optLen) {
+            m_optOffsetEnd = m_offsetStart + *optLen;
+            assert(m_optOffsetEnd.value() <= buffer.size());
+        } else if (optOffsetEnd) {
+            m_optOffsetEnd = optOffsetEnd;
+            assert(m_optOffsetEnd.value() <= buffer.size());
         }
 
-        if (m_offsetEnd)
-            assert(m_offsetStart <= m_offsetEnd.value());
+        if (m_optOffsetEnd)
+            assert(m_offsetStart <= m_optOffsetEnd.value());
 
         assert(position() <= size());
     }
@@ -43,33 +46,33 @@ public:
     Buffer bufferRest() const { return Buffer(cdata(), rest()); }
 
     size_t offsetStart() const { return m_offsetStart; }
-    size_t offsetEnd() const { return m_offsetEnd.value_or(m_buffer.size()); }
+    size_t offsetEnd() const { return m_optOffsetEnd.value_or(m_buffer.size()); }
 
     size_t size() const { return offsetEnd() - offsetStart(); }
-    size_t position() const { return m_offset; }
+    size_t position() const { return m_position; }
     size_t rest() const { return size() - position(); }
 
-    size_t seek(size_t pos) { assert(pos <= size()); m_offset = pos; return m_offset; }
-    size_t advance(int64_t delta) { assert( static_cast<int64_t>(m_offset) + delta >= 0); return seek(m_offset + delta); }
-    void resetPosition() { m_offset = 0; }
+    size_t seek(size_t pos) { checkPosition(pos); m_position = pos; return m_position; }
+    size_t advance(int64_t delta) { checkAdvance(delta); return seek(m_position + delta); }
+    void resetPosition() { m_position = 0; }
 
     const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
     const uint8_t* cdataSrc() const { return dataSrc(); }
 
-    const uint8_t* data() const { return m_buffer.data() + m_offsetStart + m_offset; }
+    const uint8_t* data() const { return m_buffer.data() + m_offsetStart + m_position; }
     const uint8_t* cdata() const { return data(); }
 
     uint32_t hash() const;
 
     void readRaw(void* buffer, size_t sz) {
-        checkPosition(sz);
+        checkAdvance(sz);
         memcpy(buffer, cdata(), sz);
         advance(sz);
     }
 
     BufferReader readRaw(size_t sz) {
-        checkPosition(sz);
-        const BufferReader result(m_buffer, m_offsetStart + m_offset, sz);
+        checkAdvance(sz);
+        const BufferReader result(m_buffer, m_offsetStart + m_position, sz);
         advance(sz);
         return result;
     }
@@ -78,14 +81,23 @@ public:
              typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
     void read(T& data) { readRaw(&data, sizeof(data)); }
 
+    template<typename T,
+             typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
+    T read() {
+        T data;
+        read(data);
+        return data;
+    }
+
 private:
-    void checkPosition(size_t sz) const;
+    void checkPosition(size_t pos) const;
+    void checkAdvance(int64_t delta) const;
 
 private:
     const Buffer& m_buffer;
-    size_t m_offset { 0 };
+    size_t m_position { 0 };
     size_t m_offsetStart;
-    std::optional<size_t> m_offsetEnd;
+    std::optional<size_t> m_optOffsetEnd;
 };
 
 } // namespace SuitableStruct

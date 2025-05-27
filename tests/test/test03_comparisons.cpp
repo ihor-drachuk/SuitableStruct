@@ -16,7 +16,7 @@ struct A
 {
     int value {};
     auto ssTuple() const { return std::tie(value); }
-    SS_COMPARISONS_MEMBER(A);
+    SS_COMPARISONS_MEMBER(A)
 };
 
 struct B
@@ -26,7 +26,7 @@ struct B
     float value3 {};
 
     auto ssTuple() const { return std::tie(a, value2, value3); }
-    SS_COMPARISONS_MEMBER(B);
+    SS_COMPARISONS_MEMBER(B)
 };
 
 struct AB : A, B
@@ -40,7 +40,7 @@ struct AB : A, B
         static_cast<const B*>(this)->ssTuple(),
         ssLocalTuple());
     }
-    SS_COMPARISONS_MEMBER(AB);
+    SS_COMPARISONS_MEMBER(AB)
 };
 
 template<typename SmartType>
@@ -48,7 +48,7 @@ struct SP
 {
     SmartType value;
     auto ssTuple() const { return std::tie(value); }
-    SS_COMPARISONS_MEMBER_ONLY_EQ(SP);
+    SS_COMPARISONS_MEMBER_ONLY_EQ(SP)
 };
 
 inline bool compare_eq(const SP<SomeStructPtr>&, const SomeStructPtr& a, const SomeStructPtr& b) { return a.get() == b.get(); }

@@ -27,7 +27,7 @@
       char* s_;
 
       auto ssTuple() const { return std::tie(a_, b_, s_); }
-      SS_COMPARISONS_MEMBER(My_Struct); // -- Comparison operators as members
+      SS_COMPARISONS_MEMBER(My_Struct) // -- Comparison operators as members
   };
 
 
@@ -44,8 +44,8 @@
   }
 
   // Comparison operators as non-members
-  SS_COMPARISONS(My_Struct);    // All:  <, <=, ==, !=, >, >=
-  SS_COMPARISONS_EQ(My_Struct); // Only: ==, !=
+  SS_COMPARISONS(My_Struct)    // All:  <, <=, ==, !=, >, >=
+  SS_COMPARISONS_EQ(My_Struct) // Only: ==, !=
 */
 
 template<typename T>

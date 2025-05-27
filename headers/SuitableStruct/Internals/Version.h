@@ -3,39 +3,60 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #pragma once
-#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <SuitableStruct/Internals/Helpers.h>
+#include <SuitableStruct/Handlers.h>
 
 
 namespace SuitableStruct {
 
+// Check if type has ssVersions in itself
+template<typename T, typename = void>
+struct HasSSVersionsInType : std::false_type {};
+
 template<typename T>
-struct SSVersionDirect
-{
-    static constexpr auto version = std::tuple_size_v<typename T::ssVersions> - 1;
+struct HasSSVersionsInType<T, std::void_t<typename T::ssVersions>> : std::true_type {};
+
+// Check if type has ssVersions in its Handlers
+template<typename T, typename = void>
+struct HasSSVersionsInHandlers : std::false_type {};
+
+template<typename T>
+struct HasSSVersionsInHandlers<T, std::void_t<typename Handlers<T>::ssVersions>> : std::true_type {};
+
+// New type traits for versioning checks
+template<typename T>
+struct HasSSVersionsInTypeOrHandlers {
+    static constexpr bool value = HasSSVersionsInType<T>::value || HasSSVersionsInHandlers<T>::value;
 };
 
-template<typename T,
-         typename std::enable_if<has_ssVersions_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
+// Get ssVersions from type or its Handlers
+template<typename T, typename = void>
+struct SSVersions
 {
-    return static_cast<uint8_t>(std::tuple_size_v<typename T::ssVersions> - 1);
-}
+    using type = std::tuple<T>;
+};
 
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && !std::is_class_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
+template<typename T>
+struct SSVersions<T, std::enable_if_t<HasSSVersionsInType<T>::value>>
 {
-    return {};
-}
+    using type = typename T::ssVersions;
+};
 
-template<typename T,
-         typename std::enable_if<!has_ssVersions_v<T> && std::is_class_v<T>>::type* = nullptr>
-std::optional<uint8_t> ssVersion()
+template<typename T>
+struct SSVersions<T, std::enable_if_t<!HasSSVersionsInType<T>::value && HasSSVersionsInHandlers<T>::value>>
 {
-    return 0;
-}
+    using type = typename Handlers<T>::ssVersions;
+};
+
+template<typename T>
+using SSVersions_t = typename SSVersions<T>::type;
+
+template<typename T>
+struct SSVersion
+{
+    static constexpr auto value = std::tuple_size_v<SSVersions_t<T>> - 1;
+};
 
 } // namespace SuitableStruct

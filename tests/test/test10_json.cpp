@@ -11,6 +11,7 @@
 #include <SuitableStruct/Containers/list.h>
 #include <SuitableStruct/Containers/array.h>
 #include <SuitableStruct/Containers/unordered_map.h>
+#include <QString>
 #include <QPoint>
 #include <QJsonValue>
 #include <QJsonObject>
@@ -143,7 +144,7 @@ TEST(SuitableStruct, JsonSerialization)
     a.d = "Test";
     a.e1 = Enum1::Value2;
     a.e2 = Test9_CustomEnum::Enum2::Value3;
-    a.e3 = static_cast<Test9_CustomEnum::Enum2>(123123);
+    a.e3 = static_cast<Test9_CustomEnum::Enum2>(123123); // NOLINT
     a.f = QString("Test").toUtf8();
     a.g = 1.276;
     a.h = 'H';
@@ -173,38 +174,46 @@ TEST(SuitableStruct, JsonSerialization)
     a.x = "asdasd";
 
     ASSERT_NE(b, a);
-    auto saved = ssJsonSave(a);
+    const auto saved = ssJsonSave(a);
     ssJsonLoad(saved, b);
 
     ASSERT_EQ(b, a);
     ASSERT_NE(b.q.get(), a.q.get());
 
     { // Integrity tests
-        auto valueRoot = saved.toObject(); // content, hash
-        auto valueContent1 = valueRoot["content"].toObject(); // content, version
-        auto valueContent2 = valueContent1["content"].toObject(); // a, b, c, ...
-        valueContent2["a"] = a.a + 1;
-        valueContent1["content"] = valueContent2;
-        valueRoot["content"] = valueContent1;
-        auto saved2 = QJsonValue(valueRoot);
+        const auto valueRoot = saved.toObject(); // Now: {ss_format_version, hash, segments}
+
+        // Create a corrupted copy by modifying the segments data directly
+        auto corruptedRoot = valueRoot;
+        auto segmentsArray = corruptedRoot["segments"].toArray();
+        auto firstSegment = segmentsArray[0].toObject();
+        auto segmentData = firstSegment["data"].toObject();
+
+        // Modify the actual data (this will make the hash mismatch)
+        segmentData["a"] = a.a + 1;
+        firstSegment["data"] = segmentData;
+        segmentsArray[0] = firstSegment;
+        corruptedRoot["segments"] = segmentsArray;
+
+        // The hash is still the original hash, but the data is corrupted
+        const auto saved2 = QJsonValue(corruptedRoot);
         ASSERT_THROW(ssJsonLoad(saved2, c), std::runtime_error);
         ASSERT_EQ(c, empty);
 
-        valueContent2["a"] = a.a;
-        valueContent1["content"] = valueContent2;
-        valueRoot["content"] = valueContent1;
-        saved2 = QJsonValue(valueRoot);
-        ssJsonLoad(saved2, c);
+        // Use the original saved data (unmodified)
+        ssJsonLoad(saved, c);
         ASSERT_EQ(c, a);
     }
 }
 
 TEST(SuitableStruct, JsonSerialization_Integers)
 {
+    // Create test data in the new segments format for non-protected mode
     const QJsonValue testJson = []() {
         const auto configText = R"(
-        {
-            "content": {
+        [{
+            "version_index": 0,
+            "data": {
                 "a0": "127",
                 "a1": "-0x80",
 
@@ -231,10 +240,10 @@ TEST(SuitableStruct, JsonSerialization_Integers)
                 "h0": "123456789012345678",
                 "h1": "0xFFFFFFFFFFFFFFFF"
             }
-        }
+        }]
       )";
 
-      return QJsonDocument::fromJson(configText).object();
+      return QJsonDocument::fromJson(configText).array();
     }();
 
     Struct2 a, b;
@@ -266,34 +275,36 @@ TEST(SuitableStruct, JsonSerialization_Integers)
     ASSERT_EQ(a.h0, 123456789012345678);
     ASSERT_EQ(a.h1, 0xFFFFFFFFFFFFFFFF);
 
-    const auto serialized = QString::fromLatin1(QJsonDocument(ssJsonSave(a, false).toObject()).toJson(QJsonDocument::JsonFormat::Indented));
-    const auto reference = R"({
-    "content": {
-        "a0": 127,
-        "a1": -128,
-        "b0": 255,
-        "b1": 128,
-        "c0": 12345,
-        "c1": -12345,
-        "d0": 65535,
-        "d1": 65535,
-        "e0": 2147483647,
-        "e1": -123456789,
-        "e2": -2147483648,
-        "f0": "4294967295",
-        "f1": "123456789",
-        "g0": "-1234567890123456",
-        "g1": "9223372036854775807",
-        "g2": "-9223372036854775808",
-        "h0": "123456789012345678",
-        "h1": "18446744073709551615"
-    },
-    "version": 0
-}
+    const auto serialized = QString::fromLatin1(QJsonDocument(ssJsonSave(a, false).toArray()).toJson(QJsonDocument::JsonFormat::Indented));
+    const auto reference = R"([
+    {
+        "data": {
+            "a0": 127,
+            "a1": -128,
+            "b0": 255,
+            "b1": 128,
+            "c0": 12345,
+            "c1": -12345,
+            "d0": 65535,
+            "d1": 65535,
+            "e0": 2147483647,
+            "e1": -123456789,
+            "e2": -2147483648,
+            "f0": "4294967295",
+            "f1": "123456789",
+            "g0": "-1234567890123456",
+            "g1": "9223372036854775807",
+            "g2": "-9223372036854775808",
+            "h0": "123456789012345678",
+            "h1": "18446744073709551615"
+        },
+        "version_index": 0
+    }
+]
 )";
     ASSERT_EQ(serialized, reference);
 
-    const auto testJson2 = QJsonDocument::fromJson(reference).object();
+    const auto testJson2 = QJsonDocument::fromJson(reference).array();
     ssJsonLoad(testJson2, b, false);
     ASSERT_EQ(a, b);
 }
@@ -331,7 +342,6 @@ TEST(SuitableStruct, JsonSerialization_OldBoolCompatibility)
     ASSERT_TRUE(readTrue);
     ASSERT_FALSE(readFalse);
 }
-
 
 //#define GENERATE_MODE
 TEST(SuitableStruct, JsonSerialization_PreSerializedSteadyClock)
@@ -381,6 +391,91 @@ TEST(SuitableStruct, JsonSerialization_PreSerializedSteadyClock)
 #endif // GENERATE_MODE
 }
 
-#include "test09_json.moc"
+TEST(SuitableStruct, JsonSerialization_Corruption)
+{
+    Struct1 initialStruct;
+    initialStruct.a0 = true;
+    initialStruct.a = 10;
+    initialStruct.b = 15;
+    initialStruct.c = 0x6E33168B;
+    initialStruct.d = "Test";
+    initialStruct.e1 = Enum1::Value2;
+    initialStruct.f = QString("Test").toUtf8();
+    initialStruct.g = 1.276;
+    initialStruct.h = 'H';
+    initialStruct.k = QPoint(1, 5);
+    initialStruct.l = "Test2";
+    initialStruct.m = {1, 2, 3};
+    initialStruct.n = {"str1", "str2"};
+    initialStruct.s1 = 14;
+    initialStruct.t1 = QJsonObject({{"SubValue1", 1}, {"SubValue2", "b"}});
+    initialStruct.u = QColor(128, 255, 0);
+    initialStruct.v = {{1, "one"}, {2, "two"}};
+
+    const auto savedJson = ssJsonSave(initialStruct);
+    const auto jsonString = QString::fromUtf8(QJsonDocument(savedJson.toArray()).toJson(QJsonDocument::Compact));
+
+    auto jsonGetter = [](const QJsonDocument& doc) -> QJsonValue {
+        if (doc.isArray()) {
+            return doc.array();
+        } else if (doc.isObject()) {
+            return doc.object();
+        } else {
+            return {};
+        }
+    };
+
+    // Test character corruption
+    for (int i = 0; i < jsonString.size(); i++) {
+        Struct1 value2;
+        ASSERT_NE(initialStruct, value2);
+
+        auto jsonCopy = jsonString;
+        // Corrupt one character by changing it to a different character
+        jsonCopy[i] = (jsonCopy[i] == 'a') ? 'b' : 'a';
+
+        const auto doc = QJsonDocument::fromJson(jsonCopy.toUtf8());
+        if (const auto json = jsonGetter(doc); !json.isNull()) {
+            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+        }
+    }
+
+    // Test truncation
+    for (int i = 1; i < jsonString.size() - 1; i++) {
+        Struct1 value2;
+        ASSERT_NE(initialStruct, value2);
+
+        const auto jsonCopy = jsonString.left(i);
+        const auto doc = QJsonDocument::fromJson(jsonCopy.toUtf8());
+
+        // Truncated JSON should either be unparseable or throw during deserialization
+        if (const auto json = jsonGetter(doc); !json.isNull()) {
+            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+        }
+    }
+
+    // Test malformed JSON structures
+    const QVector<QByteArray> malformedJsons = {
+        "[]",  // Empty array
+        "[{}]",  // Empty object in array
+        "[{\"version_index\": 0}]",  // Missing data field
+        "[{\"data\": {}}]",  // Missing version_index
+        "[{\"version_index\": \"invalid\", \"data\": {}}]",  // Invalid version_index type
+        "[{\"version_index\": 0, \"data\": \"invalid\"}]",  // Invalid data type
+        "[{\"version_index\": 0, \"data\": {\"a0\": \"invalid_bool\"}}]"  // Invalid field type
+    };
+
+    for (const auto& malformedJson : malformedJsons) {
+        Struct1 value2;
+        ASSERT_NE(initialStruct, value2);
+
+        const auto doc = QJsonDocument::fromJson(malformedJson);
+        if (const auto json = jsonGetter(doc); !json.isNull()) {
+            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+        }
+    }
+}
+
+#include "test10_json.moc"
 
 #endif // #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY

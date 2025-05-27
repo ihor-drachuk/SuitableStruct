@@ -4,6 +4,7 @@
 
 #include <SuitableStruct/Internals/DefaultTypes.h>
 
+#include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/SerializerJson.h>
 #include <variant>
 
@@ -47,15 +48,15 @@ Buffer ssSaveImpl(const std::string& value)
     return buffer;
 }
 
-void ssLoadImpl(BufferReader& buffer, std::string& value)
+void ssLoadImpl(BufferReader& bufferReader, std::string& value)
 {
     // Load & swap is not needed here because it's implemented in ssLoad
 
     uint64_t sz;
-    buffer.read(sz);
+    bufferReader.read(sz);
 
     value.resize(sz);
-    buffer.readRaw(value.data(), sz);
+    bufferReader.readRaw(value.data(), sz);
 }
 
 
@@ -69,12 +70,12 @@ Buffer ssSaveImpl(const QByteArray& value)
     return result;
 }
 
-void ssLoadImpl(BufferReader& buffer, QByteArray& value)
+void ssLoadImpl(BufferReader& bufferReader, QByteArray& value)
 {
     uint64_t sz;
-    buffer.read(sz);
+    bufferReader.read(sz);
     value.resize(sz);
-    buffer.readRaw(value.data(), sz);
+    bufferReader.readRaw(value.data(), sz);
 }
 
 Buffer ssSaveImpl(const QString& value)
@@ -82,9 +83,9 @@ Buffer ssSaveImpl(const QString& value)
     return ssSaveImpl(value.toUtf8());
 }
 
-void ssLoadImpl(BufferReader& buffer, QString& value)
+void ssLoadImpl(BufferReader& bufferReader, QString& value)
 {
-    value = QString::fromUtf8(ssLoadImplRet<QByteArray>(buffer));
+    value = QString::fromUtf8(ssLoadImplRet<QByteArray>(bufferReader));
 }
 
 Buffer ssSaveImpl(const QPoint& value)
@@ -95,10 +96,10 @@ Buffer ssSaveImpl(const QPoint& value)
     return result;
 }
 
-void ssLoadImpl(BufferReader& buffer, QPoint& value)
+void ssLoadImpl(BufferReader& bufferReader, QPoint& value)
 {
-    ssLoadImpl(buffer, value.rx());
-    ssLoadImpl(buffer, value.ry());
+    ssLoadImpl(bufferReader, value.rx());
+    ssLoadImpl(bufferReader, value.ry());
 }
 
 Buffer ssSaveImpl(const QColor& value)
@@ -108,9 +109,9 @@ Buffer ssSaveImpl(const QColor& value)
     return result;
 }
 
-void ssLoadImpl(BufferReader& buffer, QColor& value)
+void ssLoadImpl(BufferReader& bufferReader, QColor& value)
 {
-    buffer.readRaw(&value, sizeof(value));
+    bufferReader.readRaw(&value, sizeof(value));
 }
 
 Buffer ssSaveImpl(const QJsonValue& value)
@@ -122,10 +123,10 @@ Buffer ssSaveImpl(const QJsonValue& value)
     return ssSaveImpl(data);
 }
 
-void ssLoadImpl(BufferReader& buffer, QJsonValue& value)
+void ssLoadImpl(BufferReader& bufferReader, QJsonValue& value)
 {
     QByteArray data;
-    ssLoadImpl(buffer, data);
+    ssLoadImpl(bufferReader, data);
     QDataStream ds (&data, QIODevice::ReadOnly);
     setupDataStream(ds);
     ds >> value;
@@ -136,10 +137,10 @@ Buffer ssSaveImpl(const QTimeZone& value)
     return ssSaveImpl(value.id());
 }
 
-void ssLoadImpl(BufferReader& buffer, QTimeZone& value)
+void ssLoadImpl(BufferReader& bufferReader, QTimeZone& value)
 {
     decltype(value.id()) temp;
-    ssLoadImpl(buffer, temp);
+    ssLoadImpl(bufferReader, temp);
     value = temp.isEmpty() ? QTimeZone() : QTimeZone(temp);
 }
 
@@ -148,10 +149,10 @@ Buffer ssSaveImpl(const QDate& value)
     return ssSaveImpl(value.toJulianDay());
 }
 
-void ssLoadImpl(BufferReader& buffer, QDate& value)
+void ssLoadImpl(BufferReader& bufferReader, QDate& value)
 {
     decltype(value.toJulianDay()) temp;
-    ssLoadImpl(buffer, temp);
+    ssLoadImpl(bufferReader, temp);
     value = QDate::fromJulianDay(temp);
 }
 
@@ -160,10 +161,10 @@ Buffer ssSaveImpl(const QTime& value)
     return ssSaveImpl(value.msecsSinceStartOfDay());
 }
 
-void ssLoadImpl(BufferReader& buffer, QTime& value)
+void ssLoadImpl(BufferReader& bufferReader, QTime& value)
 {
     decltype(value.msecsSinceStartOfDay()) temp;
-    ssLoadImpl(buffer, temp);
+    ssLoadImpl(bufferReader, temp);
     value = QTime::fromMSecsSinceStartOfDay(temp);
 }
 
@@ -173,7 +174,7 @@ Buffer ssSaveImpl(const QDateTime& value)
     result += ssSaveImpl(value.timeSpec());
 
     switch (value.timeSpec()) {
-        case Qt::LocalTime: break;
+        case Qt::LocalTime: [[fallthrough]];
         case Qt::UTC:       break;
 
         case Qt::OffsetFromUTC:
@@ -194,35 +195,35 @@ Buffer ssSaveImpl(const QDateTime& value)
     return result;
 }
 
-void ssLoadImpl(BufferReader& buffer, QDateTime& value)
+void ssLoadImpl(BufferReader& bufferReader, QDateTime& value)
 {
     using OffsetFromUtc = decltype(value.offsetFromUtc());
 
-    const auto timeSpec = ssLoadImplRet<Qt::TimeSpec>(buffer);
+    const auto timeSpec = ssLoadImplRet<Qt::TimeSpec>(bufferReader);
     std::variant<std::monostate, OffsetFromUtc, QTimeZone> timeDetails;
 
     switch (timeSpec) {
-        case Qt::LocalTime: break;
+        case Qt::LocalTime: [[fallthrough]];
         case Qt::UTC:       break;
 
         case Qt::OffsetFromUTC: {
-            timeDetails = ssLoadImplRet<OffsetFromUtc>(buffer);
+            timeDetails = ssLoadImplRet<OffsetFromUtc>(bufferReader);
             break;
         }
 
         case Qt::TimeZone:
-            timeDetails = ssLoadImplRet<QTimeZone>(buffer);
+            timeDetails = ssLoadImplRet<QTimeZone>(bufferReader);
             break;
 
         default:
             assert(false && "Unhandled timeSpec!");
     }
 
-    const auto date = ssLoadImplRet<QDate>(buffer);
-    const auto time = ssLoadImplRet<QTime>(buffer);
+    const auto date = ssLoadImplRet<QDate>(bufferReader);
+    const auto time = ssLoadImplRet<QTime>(bufferReader);
 
     switch (timeSpec) {
-        case Qt::LocalTime:
+        case Qt::LocalTime: [[fallthrough]];
         case Qt::UTC:
             value = QDateTime(date, time, timeSpec);
             break;
@@ -539,7 +540,7 @@ QJsonValue ssJsonSaveImpl(const QDateTime& value)
     result["time"] = ssJsonSaveImpl(value.time());
 
     switch (value.timeSpec()) {
-        case Qt::LocalTime:
+        case Qt::LocalTime: [[fallthrough]];
         case Qt::UTC:
             break;
 
@@ -568,7 +569,7 @@ void ssJsonLoadImpl(const QJsonValue& src, QDateTime& value)
     const auto time = ssJsonLoadImplRet<QTime>(obj["time"]);
 
     switch (timeSpec) {
-        case Qt::LocalTime:
+        case Qt::LocalTime: [[fallthrough]];
         case Qt::UTC:
             value = QDateTime(date, time, timeSpec);
             break;

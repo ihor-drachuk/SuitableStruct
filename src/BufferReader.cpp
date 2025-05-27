@@ -3,21 +3,29 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #include <SuitableStruct/BufferReader.h>
-#include <SuitableStruct/Internals/Exceptions.h>
+#include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Hashes.h>
 
 namespace SuitableStruct {
 
 uint32_t BufferReader::hash() const
 {
-    const auto sz = size();
-    return sz ? ssHashRaw(data(), sz) : 0;
+    return ssHashRaw(data(), rest());
 }
 
-void BufferReader::checkPosition(size_t sz) const
+void BufferReader::checkPosition(size_t pos) const
 {
-    if (position() + sz > size())
+    if (pos > size())
         Internal::throwOutOfRange();
+}
+
+void BufferReader::checkAdvance(int64_t delta) const
+{
+    const auto newPos = static_cast<int64_t>(position()) + delta;
+
+    if (newPos < 0 || newPos > size()) {
+        Internal::throwOutOfRange();
+    }
 }
 
 } // namespace SuitableStruct

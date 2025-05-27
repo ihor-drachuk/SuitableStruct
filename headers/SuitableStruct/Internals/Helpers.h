@@ -6,11 +6,38 @@
 #include <tuple>
 #include <type_traits>
 #include <functional>
+#include <memory>
+#include <SuitableStruct/Handlers.h>
 
 namespace SuitableStruct {
 
 // Tag type for serializer-specific constructors
 struct SS_SERIALIZER_TAG { };
+
+namespace Internal {
+
+enum class FormatType {
+    Binary,
+    Json
+};
+
+bool isProcessingLegacyFormat(FormatType formatType);
+
+class LegacyFormatScope {
+public:
+    explicit LegacyFormatScope(FormatType formatType, bool isLegacyFormat);
+    ~LegacyFormatScope();
+
+    LegacyFormatScope(const LegacyFormatScope&) = delete;
+    LegacyFormatScope& operator=(const LegacyFormatScope&) = delete;
+
+private:
+    FormatType m_formatType;
+    bool m_previousBinaryState;
+    bool m_previousJsonState;
+};
+
+} // namespace Internal
 
 template<typename T1, typename T2>
 struct tuple_cat
@@ -189,6 +216,44 @@ template<typename T>
         return T{};
     }
 }
+
+template<typename T>
+[[nodiscard]] std::unique_ptr<T> construct_unique()
+{
+    if constexpr (std::is_constructible_v<T, SS_SERIALIZER_TAG>) {
+        return std::make_unique<T>(SS_SERIALIZER_TAG{});
+    } else {
+        return std::make_unique<T>();
+    }
+}
+
+// Check if type has ssUpgradeFrom in itself
+template<typename T, typename T2, typename = void>
+struct HasSSUpgradeFromInType : std::false_type {};
+
+template<typename T, typename T2>
+struct HasSSUpgradeFromInType<T, T2, std::void_t<decltype(std::declval<T>().ssUpgradeFrom(std::declval<T2>()))>> : std::true_type {};
+
+// Check if type has ssUpgradeFrom in its Handlers
+template<typename T, typename T2, typename = void>
+struct HasSSUpgradeFromInHandlers : std::false_type {};
+
+template<typename T, typename T2>
+struct HasSSUpgradeFromInHandlers<T, T2, std::void_t<decltype(Handlers<T>::ssUpgradeFrom(std::declval<T2>(), std::declval<T&>()))>> : std::true_type {};
+
+// Check if type has ssDowngradeTo in itself
+template<typename T, typename T2, typename = void>
+struct HasSSDowngradeToInType : std::false_type {};
+
+template<typename T, typename T2>
+struct HasSSDowngradeToInType<T, T2, std::void_t<decltype(std::declval<T>().ssDowngradeTo(std::declval<T2&>()))>> : std::true_type {};
+
+// Check if type has ssDowngradeTo in its Handlers
+template<typename T, typename T2, typename = void>
+struct HasSSDowngradeToInHandlers : std::false_type {};
+
+template<typename T, typename T2>
+struct HasSSDowngradeToInHandlers<T, T2, std::void_t<decltype(Handlers<T>::ssDowngradeTo(std::declval<T>(), std::declval<T2&>()))>> : std::true_type {};
 
 // Pre/Post operation method definitions
 #define SS_DEFINE_BEFORE_SAVE_CONST() \
