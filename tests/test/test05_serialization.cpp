@@ -180,17 +180,17 @@ TEST(SuitableStruct, SerializationTest_PreSerializedSteadyClock)
     constexpr auto referenceEpochMs = 1704110400000LL; // 2024-01-01 12:00:00 UTC in milliseconds
     const auto referenceSystemTime = std::chrono::system_clock::time_point(std::chrono::milliseconds(referenceEpochMs));
 
-#ifdef GENERATE_MODE
     // Generation mode - create test data for the reference time
-    const auto currentSystemTime = std::chrono::system_clock::now();
-    const auto currentSteadyTime = std::chrono::steady_clock::now();
+    const auto genCurrentSystemTime = std::chrono::system_clock::now();
+    const auto genCurrentSteadyTime = std::chrono::steady_clock::now();
 
     // Calculate what steady_clock time would represent our reference time
-    const auto diffToReference = referenceSystemTime - currentSystemTime;
-    const auto referenceSteadyTime = currentSteadyTime + diffToReference;
+    const auto diffToReference = referenceSystemTime - genCurrentSystemTime;
+    const auto referenceSteadyTime = genCurrentSteadyTime + diffToReference;
 
     const auto serialized = ssSave(referenceSteadyTime);
 
+#ifdef GENERATE_MODE
     std::cout << "\n=== Pre-serialized steady_clock ===\n";
     std::cout << "Reference epoch ms: " << referenceEpochMs << "\n";
     std::cout << "Buffer size: " << serialized.size() << " bytes\n";
@@ -217,8 +217,9 @@ TEST(SuitableStruct, SerializationTest_PreSerializedSteadyClock)
     // Testing mode - use pre-serialized data
 
     const Buffer preSerializedData("\x1f\x00\x00\x00\x00\x00\x00\x00\x5c\xe9\x23\xfc\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\x40\xe9\x38\x0c\xd5\x0b\x81\x52\x00\x2c\x81\x0c\x4a\x61\x37\xa6\x17", 43);
-    BufferReader reader(preSerializedData);
+    ASSERT_NE(preSerializedData.size(), serialized.size());
 
+    BufferReader reader(preSerializedData);
     const auto loadedTime = ssLoadRet<std::chrono::steady_clock::time_point>(reader);
 
     // Convert loaded steady_clock time back to system_clock to verify

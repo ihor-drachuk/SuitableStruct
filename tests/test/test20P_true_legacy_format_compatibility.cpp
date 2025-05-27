@@ -3,7 +3,7 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 // Uncomment the line below to switch to GENERATE mode
-#define GENERATE_MODE
+//#define GENERATE_MODE
 
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>

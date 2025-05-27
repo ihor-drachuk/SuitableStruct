@@ -5,7 +5,7 @@
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 // Uncomment the line below to switch to GENERATE mode
-#define GENERATE_MODE
+//#define GENERATE_MODE
 //#define FORMAT_HINT_SUPPORTED
 
 #include <gtest/gtest.h>
