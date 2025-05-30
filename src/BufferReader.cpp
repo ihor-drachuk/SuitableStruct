@@ -5,6 +5,7 @@
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Hashes.h>
+#include <limits>
 
 namespace SuitableStruct {
 
@@ -19,12 +20,27 @@ void BufferReader::checkPosition(size_t pos) const
         Internal::throwOutOfRange();
 }
 
-void BufferReader::checkAdvance(int64_t delta) const
+void BufferReader::checkAdvance(std::ptrdiff_t delta) const
 {
-    const auto newPos = static_cast<int64_t>(position()) + delta;
+    if (!delta)
+        return;
 
-    if (newPos < 0 || newPos > size()) {
-        Internal::throwOutOfRange();
+    const auto currentPos = position();
+    const auto bufferSize = size();
+
+    if (delta > 0) {
+        const auto newPosition = currentPos + static_cast<size_t>(delta);
+
+        if (newPosition > bufferSize)
+            Internal::throwOutOfRange();
+    } else {
+        if (delta == std::numeric_limits<std::ptrdiff_t>::min())
+            Internal::throwOutOfRange();
+
+        const auto unsignedAbsDelta = static_cast<size_t>(-delta);
+
+        if (currentPos < unsignedAbsDelta)
+            Internal::throwOutOfRange();
     }
 }
 

@@ -127,7 +127,7 @@ QJsonValue ssJsonSaveImpl(const T& obj)
 template<typename T>
 QJsonValue ssJsonSave(const T& obj, bool protectedMode /*= true*/)
 {
-    const QJsonValue coreContent = ssJsonSaveInternal(obj);
+    QJsonValue coreContent = ssJsonSaveInternal(obj);
 
     if (protectedMode) {
         QJsonObject protectedWrapper;
