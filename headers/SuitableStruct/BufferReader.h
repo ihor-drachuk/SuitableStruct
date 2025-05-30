@@ -6,6 +6,7 @@
 #include <cassert>
 #include <optional>
 #include <cstdint>
+#include <cstddef>
 #include <type_traits>
 #include <SuitableStruct/Buffer.h>
 
@@ -53,7 +54,7 @@ public:
     size_t rest() const { return size() - position(); }
 
     size_t seek(size_t pos) { checkPosition(pos); m_position = pos; return m_position; }
-    size_t advance(int64_t delta) { checkAdvance(delta); return seek(m_position + delta); }
+    size_t advance(std::ptrdiff_t delta) { checkAdvance(delta); return seek(m_position + delta); }
     void resetPosition() { m_position = 0; }
 
     const uint8_t* dataSrc() const { return m_buffer.data() + m_offsetStart; }
@@ -91,7 +92,7 @@ public:
 
 private:
     void checkPosition(size_t pos) const;
-    void checkAdvance(int64_t delta) const;
+    void checkAdvance(std::ptrdiff_t delta) const;
 
 private:
     const Buffer& m_buffer;

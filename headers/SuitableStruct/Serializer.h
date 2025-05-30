@@ -145,7 +145,7 @@ void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
     }();
 
     if constexpr (std::is_same_v<T2, TargetType>) {
-        target = std::move(srcObj);
+        target = std::forward<T2>(srcObj);
     } else if constexpr (HasSSUpgradeFromInType<TargetType, T2&&>::value) {
         target.ssUpgradeFrom(std::forward<T2&&>(srcObj));
     } else if constexpr (HasSSUpgradeFromInHandlers<TargetType, T2&&>::value) {
