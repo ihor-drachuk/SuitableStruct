@@ -26,7 +26,9 @@
 #include <optional>
 #include <memory>
 #include <chrono>
+#include <iostream>
 
+using namespace std::chrono_literals;
 using namespace SuitableStruct;
 
 //using Struct1 = int;
@@ -77,14 +79,21 @@ struct Struct1
     QColor u;
     std::unordered_map<int, std::string> v; // #include <SuitableStruct/Containers/unordered_map.h>
     std::chrono::steady_clock::time_point w1;
-    std::chrono::hours w2 {};
-    std::chrono::milliseconds w3 {};
+    std::chrono::system_clock::time_point w2;
+    std::chrono::hours w3 {};
+    std::chrono::milliseconds w4 {};
     std::variant<std::monostate, int, std::string> x;
 
-    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u, v, w1, w2, w3); }
-    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u", "v", "w1", "w2", "w3"); }
+    auto ssTuple() const { return std::tie(a0, a, b, c, d, e1, e2, e3, f, g, h, k, l, m, n, o, p, q, r, s1, s2, t1, t2, t3, u, v, w1, w2, w3, w4); }
+    auto ssNamesTuple() const { return std::tie("a0", "a", "b", "c", "d", "e1", "e2", "e3", "f", "g", "h", "k", "l", "m", "n", "o", "p", "q", "r", "s1", "s2", "t1", "t2", "t3", "u", "v", "w1", "w2", "w3", "w4"); }
     SS_COMPARISONS_MEMBER_ONLY_EQ(Struct1)
 };
+
+inline bool compare_eq(const Struct1&, const std::chrono::steady_clock::time_point& a, const std::chrono::steady_clock::time_point& b)
+{
+    const auto diff = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(a - b).count());
+    return diff <= 1;
+}
 
 struct Struct2
 {
@@ -157,8 +166,9 @@ TEST(SuitableStruct, JsonSerialization)
     a.v = {{1, "one"}, {2, "two"}};
 
     a.w1 = std::chrono::steady_clock::now();
-    a.w2 = std::chrono::hours(5);
-    a.w3 = std::chrono::milliseconds(123);
+    a.w2 = std::chrono::system_clock::now() + 10min;
+    a.w3 = std::chrono::hours(5);
+    a.w4 = std::chrono::milliseconds(123);
 
     a.x = "asdasd";
 
@@ -320,6 +330,55 @@ TEST(SuitableStruct, JsonSerialization_OldBoolCompatibility)
     const auto readFalse = ssJsonLoadImplRet<bool>(oldFalse);
     ASSERT_TRUE(readTrue);
     ASSERT_FALSE(readFalse);
+}
+
+
+//#define GENERATE_MODE
+TEST(SuitableStruct, JsonSerialization_PreSerializedSteadyClock)
+{
+    // Fixed reference time
+    constexpr auto referenceEpochMs = 1704110400000LL; // 2024-01-01 12:00:00 UTC in milliseconds
+    const auto referenceSystemTime = std::chrono::system_clock::time_point(std::chrono::milliseconds(referenceEpochMs));
+
+#ifdef GENERATE_MODE
+    // Generation mode - create test data for the reference time
+    const auto currentSystemTime = std::chrono::system_clock::now();
+    const auto currentSteadyTime = std::chrono::steady_clock::now();
+
+    // Calculate what steady_clock time would represent our reference time
+    const auto diffToReference = referenceSystemTime - currentSystemTime;
+    const auto referenceSteadyTime = currentSteadyTime + diffToReference;
+
+    const auto serialized = ssJsonSave(referenceSteadyTime, false);
+    const auto jsonDoc = QJsonDocument(serialized.toObject());
+    const auto jsonString = jsonDoc.toJson(QJsonDocument::Compact);
+
+    std::cout << "\n=== Pre-serialized steady_clock JSON ===\n";
+    std::cout << "Reference epoch ms: " << referenceEpochMs << "\n";
+    std::cout << "JSON: " << jsonString.toStdString() << "\n";
+    std::cout << "C++ literal: R\"JSON(" << jsonString.toStdString() << ")JSON\"\n";
+    std::cout << "=====================================\n" << std::endl;
+
+    // In generation mode, verify round-trip works
+    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(serialized, false);
+    const auto loadedDiff = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(loadedTime - referenceSteadyTime).count());
+    ASSERT_LE(loadedDiff, 1);  // Should be nearly identical
+#else
+    const char* preSerializedJson = R"JSON({"content":{"Timepoint_version_marker":"0xFFFFFFFFFFFFFFFF52810BD50C38E940","data":{"content":"1704110400000000200","version":0}},"version":0})JSON";
+    const auto jsonDoc = QJsonDocument::fromJson(preSerializedJson);
+    const auto jsonValue = QJsonValue(jsonDoc.object());
+
+    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(jsonValue, false);
+
+    // Convert loaded steady_clock time back to system_clock to verify
+    const auto currentSystemTime = std::chrono::system_clock::now();
+    const auto currentSteadyTime = std::chrono::steady_clock::now();
+    const auto loadedSystemTime = currentSystemTime + (loadedTime - currentSteadyTime);
+
+    // The loaded time should represent our reference time
+    const auto diffMs = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(loadedSystemTime - referenceSystemTime).count());
+    ASSERT_LE(diffMs, 1000);  // Allow 1 second tolerance for clock drift and test execution time
+#endif // GENERATE_MODE
 }
 
 #include "test09_json.moc"

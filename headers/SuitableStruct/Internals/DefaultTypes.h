@@ -37,6 +37,14 @@ class QStringList;
 
 namespace SuitableStruct {
 
+namespace Helpers {
+    constexpr uint64_t Timepoint_Marker_v2_Low =  0xFFFFFFFFFFFFFFFFULL;
+    constexpr uint64_t Timepoint_Marker_v2_High = 0x52810BD50C38E940ULL;
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+    QString getTimepoint_Marker_v2_String();
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+} // namespace Helpers
+
 template<typename T,
          typename std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>* = nullptr>
 Buffer ssSaveImpl(T value)
@@ -151,14 +159,55 @@ void ssLoadImpl(BufferReader& buffer, std::chrono::duration<Rep, Period>& value)
 template<typename Clock, typename Duration>
 Buffer ssSaveImpl(const std::chrono::time_point<Clock, Duration>& value)
 {
-    return ssSave(std::chrono::time_point_cast<std::chrono::high_resolution_clock::duration>(value).time_since_epoch(), false);
+    Buffer result;
+    result.write(Helpers::Timepoint_Marker_v2_Low);
+    result.write(Helpers::Timepoint_Marker_v2_High);
+
+    if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+        const auto diffFromNow = value - Clock::now();
+        const auto systemTp = std::chrono::system_clock::now() + diffFromNow; // Possible time drift here
+        result += ssSave(systemTp.time_since_epoch(), false);
+    } else {
+        result += ssSave(value.time_since_epoch(), false);
+    }
+
+    return result;
 }
 
 template<typename Clock, typename Duration>
 void ssLoadImpl(BufferReader& buffer, std::chrono::time_point<Clock, Duration>& value)
 {
-    using T = std::chrono::high_resolution_clock::duration;
-    value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(buffer, false)));
+    const auto initialPos = buffer.position();
+    uint64_t markerLow {};
+    uint64_t markerHigh {};
+
+    try {
+        buffer.read(markerLow);
+        buffer.read(markerHigh);
+    } catch (...) {
+        buffer.seek(initialPos);
+    }
+
+    if (markerLow == Helpers::Timepoint_Marker_v2_Low && markerHigh == Helpers::Timepoint_Marker_v2_High) {
+        // New format data
+        if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+            const auto durationSinceEpoch = ssLoadRet<Duration>(buffer, false);
+            const auto systemTp = std::chrono::system_clock::time_point{} + durationSinceEpoch;
+            const auto diffFromNow = systemTp - std::chrono::system_clock::now();
+            const auto steadyTp = Clock::now() + diffFromNow; // Possible time drift here
+            value = steadyTp;
+        } else {
+            value = std::chrono::time_point<Clock, Duration>(ssLoadRet<Duration>(buffer, false));
+        }
+    } else {
+        // Old format data
+        if constexpr (std::is_same_v<Clock, std::chrono::high_resolution_clock>) {
+            using T = std::chrono::high_resolution_clock::duration;
+            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(buffer, false)));
+        } else {
+            assert(false && "Previous implementation couldn't save other timepoint types!");
+        }
+    }
 }
 
 template<typename T>
@@ -752,14 +801,46 @@ void ssJsonLoadImpl(const QJsonValue& src, std::chrono::duration<Rep, Period>& v
 template<typename Clock, typename Duration>
 QJsonValue ssJsonSaveImpl(const std::chrono::time_point<Clock, Duration>& value)
 {
-    return ssJsonSave(std::chrono::time_point_cast<std::chrono::high_resolution_clock::duration>(value).time_since_epoch(), false);
+    QJsonObject obj;
+    obj["Timepoint_version_marker"] = Helpers::getTimepoint_Marker_v2_String();
+    obj["data"] = [&value](){
+        if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+            const auto diffFromNow = value - Clock::now();
+            const auto systemTp = std::chrono::system_clock::now() + diffFromNow; // Possible time drift here
+            return ssJsonSave(systemTp.time_since_epoch(), false);
+        } else {
+            return ssJsonSave(value.time_since_epoch(), false);
+        }
+    }();
+    return obj;
 }
 
 template<typename Clock, typename Duration>
 void ssJsonLoadImpl(const QJsonValue& src, std::chrono::time_point<Clock, Duration>& value)
 {
-    using T = std::chrono::high_resolution_clock::duration;
-    value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, false)));
+    const bool isNewFormat = src.toObject().value("Timepoint_version_marker").toString() == Helpers::getTimepoint_Marker_v2_String();
+
+    if (isNewFormat) {
+        // New format data
+        const auto newFormatData = src.toObject().value("data");
+        if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+            const auto durationSinceEpoch = ssJsonLoadRet<Duration>(newFormatData, false);
+            const auto systemTp = std::chrono::system_clock::time_point{} + durationSinceEpoch;
+            const auto diffFromNow = systemTp - std::chrono::system_clock::now();
+            const auto steadyTp = Clock::now() + diffFromNow; // Possible time drift here
+            value = steadyTp;
+        } else {
+            value = std::chrono::time_point<Clock, Duration>(ssJsonLoadRet<Duration>(newFormatData, false));
+        }
+    } else {
+        // Old format data
+        if constexpr (std::is_same_v<Clock, std::chrono::high_resolution_clock>) {
+            using T = std::chrono::high_resolution_clock::duration;
+            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, false)));
+        } else {
+            assert(false && "Previous implementation couldn't save other timepoint types!");
+        }
+    }
 }
 
 } // namespace SuitableStruct

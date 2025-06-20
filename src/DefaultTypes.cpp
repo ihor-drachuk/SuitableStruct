@@ -29,6 +29,16 @@ void setupDataStream(QDataStream& ds) {
 
 namespace SuitableStruct {
 
+namespace Helpers {
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+QString getTimepoint_Marker_v2_String()
+{
+    static const QString marker = QStringLiteral("0xFFFFFFFFFFFFFFFF52810BD50C38E940");
+    return marker;
+}
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+} // namespace Helpers
+
 Buffer ssSaveImpl(const std::string& value)
 {
     Buffer buffer;
