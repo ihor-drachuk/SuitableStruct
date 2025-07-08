@@ -201,6 +201,8 @@ void ssLoadImpl(BufferReader& buffer, std::chrono::time_point<Clock, Duration>& 
         }
     } else {
         // Old format data
+        buffer.seek(initialPos);
+
         if constexpr (std::is_same_v<Clock, std::chrono::high_resolution_clock>) {
             using T = std::chrono::high_resolution_clock::duration;
             value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(buffer, false)));

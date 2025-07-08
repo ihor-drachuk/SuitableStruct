@@ -349,7 +349,7 @@ TEST(SuitableStruct, JsonSerialization_PreSerializedSteadyClock)
     const auto diffToReference = referenceSystemTime - currentSystemTime;
     const auto referenceSteadyTime = currentSteadyTime + diffToReference;
 
-    const auto serialized = ssJsonSave(referenceSteadyTime, false);
+    const auto serialized = ssJsonSave(referenceSteadyTime);
     const auto jsonDoc = QJsonDocument(serialized.toObject());
     const auto jsonString = jsonDoc.toJson(QJsonDocument::Compact);
 
@@ -360,15 +360,15 @@ TEST(SuitableStruct, JsonSerialization_PreSerializedSteadyClock)
     std::cout << "=====================================\n" << std::endl;
 
     // In generation mode, verify round-trip works
-    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(serialized, false);
+    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(serialized);
     const auto loadedDiff = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(loadedTime - referenceSteadyTime).count());
     ASSERT_LE(loadedDiff, 1);  // Should be nearly identical
 #else
-    const char* preSerializedJson = R"JSON({"content":{"Timepoint_version_marker":"0xFFFFFFFFFFFFFFFF52810BD50C38E940","data":{"content":"1704110400000000200","version":0}},"version":0})JSON";
+    const char* preSerializedJson = R"JSON({"content":{"content":{"Timepoint_version_marker":"0xFFFFFFFFFFFFFFFF52810BD50C38E940","data":{"content":"1704110400000001000","version":0}},"version":0},"hash":"3290992619"})JSON";
     const auto jsonDoc = QJsonDocument::fromJson(preSerializedJson);
     const auto jsonValue = QJsonValue(jsonDoc.object());
 
-    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(jsonValue, false);
+    const auto loadedTime = ssJsonLoadRet<std::chrono::steady_clock::time_point>(jsonValue);
 
     // Convert loaded steady_clock time back to system_clock to verify
     const auto currentSystemTime = std::chrono::system_clock::now();
