@@ -18,6 +18,7 @@
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Internals/Version.h>
+#include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Handlers.h>
 
 namespace SuitableStruct {
@@ -40,6 +41,9 @@ uint32_t ssJsonHashValue_F0(const QJsonValue& value);
 uint32_t ssJsonHashValue_F1(const QJsonValue& value);
 uint32_t ssJsonHashValue(const QJsonValue& value);
 } // namespace Internal
+
+// Format detection function for JSON
+[[nodiscard]] std::optional<SSDataFormat> ssDetectJsonFormat(const QJsonValue& value);
 
 // --------- Forward declarations ---------
 template<typename T> QJsonValue ssJsonSaveInternal(const T& obj);

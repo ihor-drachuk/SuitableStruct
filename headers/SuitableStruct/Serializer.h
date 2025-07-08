@@ -14,6 +14,7 @@
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Internals/Version.h>
 #include <SuitableStruct/Internals/DefaultTypes.h>
+#include <SuitableStruct/Internals/Common.h>
 #include <SuitableStruct/Exceptions.h>
 #include <SuitableStruct/Buffer.h>
 #include <SuitableStruct/BufferReader.h>
@@ -38,6 +39,10 @@ extern const uint8_t SS_FORMAT_F0[SS_FORMAT_MARK_SIZE];  // Format F0, single-ve
 extern const uint8_t SS_FORMAT_F1[SS_FORMAT_MARK_SIZE];  // Format F1, multiple versions segments, new hash algorithm
 
 } // namespace Internal
+
+// Format detection function
+[[nodiscard]] std::optional<SSDataFormat> ssDetectFormat(const Buffer& buffer);
+[[nodiscard]] std::optional<SSDataFormat> ssDetectFormat(BufferReader& bufferReader);
 
 // ------ Forward declarations ------
 template<typename T> Buffer ssSaveInternal(const T& obj);

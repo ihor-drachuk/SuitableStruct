@@ -9,6 +9,11 @@
 
 namespace SuitableStruct {
 
+enum class SSDataFormat {
+    F0,
+    F1
+};
+
 template<typename T> struct IsContainer : public std::false_type { };
 
 template<typename T, typename std::enable_if<can_size<T>::value>::type* = nullptr>

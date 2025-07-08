@@ -805,6 +805,28 @@ TEST(SuitableStruct, JsonLegacyFormatF0CompatibilityTest_P_VersionDowngrade)
     ASSERT_EQ(v0.optionalField, v1.optionalField);
     ASSERT_EQ(v0.nestedField, v1.nestedField); // v01 to v01, direct copy
 }
+
+// Test format detection for legacy JSON F0 data
+TEST(SuitableStruct, JsonLegacyFormatF0CompatibilityTest_FormatDetection_v0)
+{
+    const QJsonValue legacyJson = QJsonDocument::fromJson(legacyJsonData_v0).object();
+    const auto optDetectedFormat = ssDetectJsonFormat(legacyJson);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
+
+TEST(SuitableStruct, JsonLegacyFormatF0CompatibilityTest_FormatDetection_v1)
+{
+    const QJsonValue legacyJson = QJsonDocument::fromJson(legacyJsonData_v1).object();
+    const auto optDetectedFormat = ssDetectJsonFormat(legacyJson);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
+
+TEST(SuitableStruct, JsonLegacyFormatF0CompatibilityTest_FormatDetection_v2)
+{
+    const QJsonValue legacyJson = QJsonDocument::fromJson(legacyJsonData_v2).object();
+    const auto optDetectedFormat = ssDetectJsonFormat(legacyJson);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
 #endif // !GENERATE_MODE
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
