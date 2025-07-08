@@ -189,7 +189,7 @@ TEST(SuitableStruct, SerializationTest_PreSerializedSteadyClock)
     const auto diffToReference = referenceSystemTime - currentSystemTime;
     const auto referenceSteadyTime = currentSteadyTime + diffToReference;
 
-    const auto serialized = ssSave(referenceSteadyTime, false);
+    const auto serialized = ssSave(referenceSteadyTime);
 
     std::cout << "\n=== Pre-serialized steady_clock ===\n";
     std::cout << "Reference epoch ms: " << referenceEpochMs << "\n";
@@ -210,16 +210,16 @@ TEST(SuitableStruct, SerializationTest_PreSerializedSteadyClock)
 
     // In generation mode, verify round-trip works
     BufferReader reader(serialized);
-    const auto loadedTime = ssLoadRet<std::chrono::steady_clock::time_point>(reader, false);
+    const auto loadedTime = ssLoadRet<std::chrono::steady_clock::time_point>(reader);
     const auto loadedDiff = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(loadedTime - referenceSteadyTime).count());
     ASSERT_LE(loadedDiff, 1);  // Should be nearly identical
 #else
     // Testing mode - use pre-serialized data
 
-    const Buffer preSerializedData("\x00\xff\xff\xff\xff\xff\xff\xff\xff\x40\xe9\x38\x0c\xd5\x0b\x81\x52\x00\x2c\x81\x0c\x4a\x61\x37\xa6\x17", 26);
+    const Buffer preSerializedData("\x1f\x00\x00\x00\x00\x00\x00\x00\x5c\xe9\x23\xfc\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\x40\xe9\x38\x0c\xd5\x0b\x81\x52\x00\x2c\x81\x0c\x4a\x61\x37\xa6\x17", 43);
     BufferReader reader(preSerializedData);
 
-    const auto loadedTime = ssLoadRet<std::chrono::steady_clock::time_point>(reader, false);
+    const auto loadedTime = ssLoadRet<std::chrono::steady_clock::time_point>(reader);
 
     // Convert loaded steady_clock time back to system_clock to verify
     const auto currentSystemTime = std::chrono::system_clock::now();
