@@ -530,11 +530,11 @@ void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
 
     if (protectedMode) {
         // Read and validate reserved signature only in protected mode
-        uint8_t reserved[Internal::SS_FORMAT_MARK_SIZE];
-        partBufferReader.readRaw(reserved, sizeof(reserved));
+        uint8_t formatMark[Internal::SS_FORMAT_MARK_SIZE];
+        partBufferReader.readRaw(formatMark, sizeof(formatMark));
 
-        const bool isFormatF0Marker = memcmp(reserved, Internal::SS_FORMAT_F0, Internal::SS_FORMAT_MARK_SIZE) == 0;
-        const bool isFormatF1Marker = !isFormatF0Marker && (memcmp(reserved, Internal::SS_FORMAT_F1, Internal::SS_FORMAT_MARK_SIZE) == 0);
+        const bool isFormatF0Marker = memcmp(formatMark, Internal::SS_FORMAT_F0, Internal::SS_FORMAT_MARK_SIZE) == 0;
+        const bool isFormatF1Marker = !isFormatF0Marker && (memcmp(formatMark, Internal::SS_FORMAT_F1, Internal::SS_FORMAT_MARK_SIZE) == 0);
 
         if (!isFormatF0Marker && !isFormatF1Marker)
             Internal::throwFormat();
