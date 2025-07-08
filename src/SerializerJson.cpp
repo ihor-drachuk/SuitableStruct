@@ -61,6 +61,60 @@ uint32_t ssJsonHashValue_F1(const QJsonValue& value)
 }
 
 } // namespace Internal
+
+std::optional<SSDataFormat> ssDetectJsonFormat(const QJsonValue& value)
+{
+    try {
+        // Check if this is a protected mode JSON (should be an object)
+        if (!value.isObject())
+            return {};
+
+        const QJsonObject rootObject = value.toObject();
+
+        // Check for new F1 format markers
+        if (rootObject.contains(Internal::KEY_SS_FORMAT_VERSION)) {
+            if (rootObject[Internal::KEY_SS_FORMAT_VERSION].toString() == Internal::VALUE_SS_FORMAT_VERSION_1_0) {
+                // This looks like F1 format
+                if (rootObject.contains(Internal::KEY_HASH) && rootObject.contains(Internal::KEY_SEGMENTS))
+                    return SSDataFormat::F1;
+            }
+            return {}; // Invalid F1 format
+        }
+
+        // Check for legacy F0 format markers
+        if (rootObject.contains(Internal::KEY_HASH) && rootObject.contains(Internal::KEY_CONTENT)) {
+            // This looks like F0 format - let's try to validate the hash
+            const QJsonValue legacyContent = rootObject[Internal::KEY_CONTENT];
+            const QJsonValue hashValue = rootObject[Internal::KEY_HASH];
+
+            if (hashValue.isDouble() || hashValue.isString()) {
+                // Try to extract hash and validate
+                uint32_t expectedHash = 0;
+                if (hashValue.isDouble()) {
+                    expectedHash = static_cast<uint32_t>(hashValue.toDouble());
+                } else {
+                    bool ok = false;
+                    expectedHash = hashValue.toString().toUInt(&ok);
+                    if (!ok)
+                        return {};
+                }
+
+                const uint32_t computedHash = Internal::ssJsonHashValue_F0(legacyContent);
+                if (expectedHash == computedHash)
+                    return SSDataFormat::F0;
+            }
+
+            return {}; // Invalid hash
+        }
+
+        // Doesn't match any known protected format
+        return {};
+
+    } catch (...) {
+        return {};
+    }
+}
+
 } // namespace SuitableStruct
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

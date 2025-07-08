@@ -743,4 +743,26 @@ TEST(SuitableStruct, LegacyFormatF0CompatibilityTest_P_VersionDowngrade)
     ASSERT_EQ(v0.optionalField, v1.optionalField);
     ASSERT_EQ(v0.nestedField, v1.nestedField);
 }
+
+// Test format detection for legacy F0 buffers
+TEST(SuitableStruct, LegacyFormatF0CompatibilityTest_FormatDetection_v0)
+{
+    const Buffer legacyFormatF0Buffer(legacyFormatF0BufferData_v0, sizeof(legacyFormatF0BufferData_v0));
+    const auto optDetectedFormat = ssDetectFormat(legacyFormatF0Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
+
+TEST(SuitableStruct, LegacyFormatF0CompatibilityTest_FormatDetection_v1)
+{
+    const Buffer legacyFormatF0Buffer(legacyFormatF0BufferData_v1, sizeof(legacyFormatF0BufferData_v1));
+    const auto optDetectedFormat = ssDetectFormat(legacyFormatF0Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
+
+TEST(SuitableStruct, LegacyFormatF0CompatibilityTest_FormatDetection_v2)
+{
+    const Buffer legacyFormatF0Buffer(legacyFormatF0BufferData_v2, sizeof(legacyFormatF0BufferData_v2));
+    const auto optDetectedFormat = ssDetectFormat(legacyFormatF0Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F0);
+}
 #endif // !GENERATE_MODE

@@ -680,4 +680,25 @@ TEST(SuitableStruct, FormatF1CompatibilityTest_LoadF1FormatBuffer_v2_to_v2)
     ASSERT_EQ(loaded.optionalStringField.value(), "optional_test");
 }
 
+// Test format detection for F1 buffers
+TEST(SuitableStruct, FormatF1CompatibilityTest_FormatDetection_v0)
+{
+    const Buffer formatF1Buffer(formatF1BufferData_v0, sizeof(formatF1BufferData_v0));
+    const auto optDetectedFormat = ssDetectFormat(formatF1Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F1);
+}
+
+TEST(SuitableStruct, FormatF1CompatibilityTest_FormatDetection_v1)
+{
+    const Buffer formatF1Buffer(formatF1BufferData_v1, sizeof(formatF1BufferData_v1));
+    const auto optDetectedFormat = ssDetectFormat(formatF1Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F1);
+}
+
+TEST(SuitableStruct, FormatF1CompatibilityTest_FormatDetection_v2)
+{
+    const Buffer formatF1Buffer(formatF1BufferData_v2, sizeof(formatF1BufferData_v2));
+    const auto optDetectedFormat = ssDetectFormat(formatF1Buffer);
+    EXPECT_EQ(optDetectedFormat, SSDataFormat::F1);
+}
 #endif // !GENERATE_MODE
