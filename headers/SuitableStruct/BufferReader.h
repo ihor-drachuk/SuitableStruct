@@ -92,6 +92,7 @@ public:
 
 private:
     void checkPosition(size_t pos) const;
+    void checkAdvance(size_t delta) const;
     void checkAdvance(std::ptrdiff_t delta) const;
 
 private:

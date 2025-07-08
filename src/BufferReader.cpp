@@ -20,6 +20,13 @@ void BufferReader::checkPosition(size_t pos) const
         Internal::throwOutOfRange();
 }
 
+void BufferReader::checkAdvance(size_t delta) const
+{
+    // Check for overflow when adding delta to current position
+    if (delta > size() - position())
+        Internal::throwOutOfRange();
+}
+
 void BufferReader::checkAdvance(std::ptrdiff_t delta) const
 {
     if (!delta)
