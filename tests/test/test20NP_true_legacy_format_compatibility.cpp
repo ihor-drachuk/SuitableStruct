@@ -4,7 +4,7 @@
 
 // Uncomment the line below to switch to GENERATE mode
 //#define GENERATE_MODE
-//#define FORMAT_HINT_SUPPORTED
+#define FORMAT_HINT_SUPPORTED
 
 #include <gtest/gtest.h>
 #include <SuitableStruct/Serializer.h>

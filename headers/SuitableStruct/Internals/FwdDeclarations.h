@@ -4,6 +4,7 @@
 
 #pragma once
 #include <SuitableStruct/Buffer.h>
+#include <SuitableStruct/Internals/Common.h>
 
 class QJsonValue;
 
@@ -15,14 +16,14 @@ template<typename T> Buffer ssSave(const T& obj, bool protectedMode = true);
 template<typename T, typename> Buffer ssSaveImpl(const T& obj);
 template<typename T> Buffer ssSaveInternal(const T& obj);
 
-template<typename T> void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode = true);
-template<typename T> [[nodiscard]] T ssLoadRet(BufferReader& bufferReader, bool protectedMode = true);
+template<typename T> void ssLoad(BufferReader& bufferReader, T& obj, SSLoadMode loadMode = SSLoadMode::Protected);
+template<typename T> [[nodiscard]] T ssLoadRet(BufferReader& bufferReader, SSLoadMode loadMode = SSLoadMode::Protected);
 template<typename T> [[nodiscard]] T ssLoadInternalRet(BufferReader& bufferReader);
 
 
 template<typename T> QJsonValue ssJsonSave(const T& obj, bool protectedMode = true);
-template<typename T> void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode = true);
-template<typename T> [[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, bool protectedMode = true);
+template<typename T> void ssJsonLoad(const QJsonValue& value, T& obj, SSLoadMode loadMode = SSLoadMode::Protected);
+template<typename T> [[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, SSLoadMode loadMode = SSLoadMode::Protected);
 
 // ssLoadInternalRet
 

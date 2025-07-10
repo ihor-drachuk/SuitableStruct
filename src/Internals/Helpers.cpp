@@ -4,35 +4,48 @@
 
 #include <SuitableStruct/Internals/Helpers.h>
 
+#include <cassert>
+
 namespace SuitableStruct {
 namespace Internal {
 
 // Private thread-local flags to track legacy format states
-static thread_local bool IsProcessingLegacyBinFormat = false;
-static thread_local bool IsProcessingLegacyJsonFormat = false;
+static thread_local std::optional<bool> OptIsProcessingLegacyBinFormat;
+static thread_local std::optional<bool> OptIsProcessingLegacyJsonFormat;
+
+std::optional<bool> isProcessingLegacyFormatOpt(FormatType formatType)
+{
+    const auto& optValue = [formatType]() -> const std::optional<bool>& {
+        switch (formatType) {
+            case FormatType::Binary: return OptIsProcessingLegacyBinFormat;
+            case FormatType::Json:   return OptIsProcessingLegacyJsonFormat;
+        }
+
+        assert(false && "Should never reach here");
+        return *reinterpret_cast<const std::optional<bool>*>(0);
+    }();
+
+    return optValue;
+}
 
 bool isProcessingLegacyFormat(FormatType formatType)
 {
-    switch (formatType) {
-        case FormatType::Binary:
-            return IsProcessingLegacyBinFormat;
-        case FormatType::Json:
-            return IsProcessingLegacyJsonFormat;
-    }
-    return false; // Should never reach here
+    const auto optValue = isProcessingLegacyFormatOpt(formatType);
+    assert(optValue);
+    return *optValue;
 }
 
 LegacyFormatScope::LegacyFormatScope(FormatType formatType, bool isLegacyFormat)
     : m_formatType(formatType),
-      m_previousBinaryState(IsProcessingLegacyBinFormat),
-      m_previousJsonState(IsProcessingLegacyJsonFormat)
+      m_previousBinaryState(OptIsProcessingLegacyBinFormat),
+      m_previousJsonState(OptIsProcessingLegacyJsonFormat)
 {
     switch (formatType) {
         case FormatType::Binary:
-            IsProcessingLegacyBinFormat = isLegacyFormat;
+            OptIsProcessingLegacyBinFormat = isLegacyFormat;
             break;
         case FormatType::Json:
-            IsProcessingLegacyJsonFormat = isLegacyFormat;
+            OptIsProcessingLegacyJsonFormat = isLegacyFormat;
             break;
     }
 }
@@ -41,10 +54,10 @@ LegacyFormatScope::~LegacyFormatScope()
 {
     switch (m_formatType) {
         case FormatType::Binary:
-            IsProcessingLegacyBinFormat = m_previousBinaryState;
+            OptIsProcessingLegacyBinFormat = m_previousBinaryState;
             break;
         case FormatType::Json:
-            IsProcessingLegacyJsonFormat = m_previousJsonState;
+            OptIsProcessingLegacyJsonFormat = m_previousJsonState;
             break;
     }
 }

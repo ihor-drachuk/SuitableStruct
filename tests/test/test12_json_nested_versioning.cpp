@@ -250,7 +250,7 @@ TEST(SuitableStruct, JsonNestedVersioning_NonProtectedModeConsistency)
 
     const auto saved = ssJsonSave(original, false); // Non-protected mode
     JsonOuterStruct_v2 loaded;
-    ssJsonLoad(saved, loaded, false);
+    ssJsonLoad(saved, loaded, SSLoadMode::NonProtectedDefault);
 
     EXPECT_EQ(original, loaded);
 }
@@ -265,7 +265,7 @@ TEST(SuitableStruct, JsonNestedVersioning_CrossVersionNonProtectedMode)
 
     const auto saved = ssJsonSave(original, false); // Save as v1, non-protected
     JsonOuterStruct_v2 loaded;                // Load as v2
-    ssJsonLoad(saved, loaded, false);
+    ssJsonLoad(saved, loaded, SSLoadMode::NonProtectedDefault);
 
     EXPECT_EQ(loaded.inner.value, 789);
     EXPECT_FLOAT_EQ(loaded.inner.extra, 7.89f);
