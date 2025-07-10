@@ -14,6 +14,13 @@ enum class SSDataFormat {
     F1
 };
 
+enum class SSLoadMode {
+    Protected,
+    NonProtectedDefault,
+    NonProtectedF0Hint,
+    NonProtectedF1Hint
+};
+
 template<typename T> struct IsContainer : public std::false_type { };
 
 template<typename T, typename std::enable_if<can_size<T>::value>::type* = nullptr>

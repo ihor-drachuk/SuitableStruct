@@ -289,7 +289,7 @@ TEST(SuitableStruct, JsonCustomHandlersVersioning_NonProtectedMode)
 
     const auto json = ssJsonSave(original, false); // Non-protected mode
     JsonStruct_v2 loaded;
-    ssJsonLoad(json, loaded, false);
+    ssJsonLoad(json, loaded, SSLoadMode::NonProtectedDefault);
 
     ASSERT_EQ(original, loaded);
 }
@@ -304,7 +304,7 @@ TEST(SuitableStruct, JsonCustomHandlersVersioning_CrossVersionNonProtected)
 
     const auto json = ssJsonSave(original, false); // Save as v1, non-protected
     JsonStruct_v2 loaded;                     // Load as v2
-    ssJsonLoad(json, loaded, false);
+    ssJsonLoad(json, loaded, SSLoadMode::NonProtectedDefault);
 
     ASSERT_EQ(loaded.a, 789);
     ASSERT_FLOAT_EQ(loaded.b, 1.23f);

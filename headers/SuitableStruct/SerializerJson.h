@@ -203,7 +203,7 @@ template<size_t I = 0, typename... Args, typename... Args2,
 void ssJsonLoadImplViaTuple(const QJsonObject& value, std::tuple<Args...>& args, const std::tuple<Args2...>& names)
 {
     static_assert(sizeof...(Args) == sizeof...(Args2), "Mismatching args/names size! (Check ssTuple and ssNamesTuple)");
-    ssJsonLoad(value[std::get<I>(names)], std::get<I>(args), false); // Call main load with protectedMode=false
+    ssJsonLoad(value[std::get<I>(names)], std::get<I>(args), SSLoadMode::NonProtectedDefault);
     ssJsonLoadImplViaTuple<I+1>(value, args, names);
 }
 
@@ -372,11 +372,11 @@ template<typename T>
 }
 
 template<typename T>
-void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
+void ssJsonLoad(const QJsonValue& value, T& obj, SSLoadMode loadMode /*= SSLoadMode::Protected*/)
 {
     auto temp = construct_unique<T>();
 
-    if (protectedMode) {
+    if (loadMode == SSLoadMode::Protected) {
         if (!value.isObject()) Internal::throwFormat();
         const auto rootObject = value.toObject();
 
@@ -391,6 +391,7 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
                  Internal::throwFormat();
             }
 
+            Internal::LegacyFormatScope legacyScope(Internal::FormatType::Json, false);
             const QJsonValue segmentsValue = rootObject[Internal::KEY_SEGMENTS];
             uint32_t expectedHash;
             ssJsonLoadImpl(rootObject[Internal::KEY_HASH], expectedHash); // Hash is a uint saved as JSON
@@ -418,18 +419,32 @@ void ssJsonLoad(const QJsonValue& value, T& obj, bool protectedMode /*= true*/)
         }
 
     } else { // Non-protected mode
-        // Data is directly passed. ssJsonLoadInternal will determine if it's segments (for class T)
-        // or direct data (for primitive T).
-        ssJsonLoadInternal(value, *temp); // This calls before/after hooks internally
+        // Determine format based on hints or auto-detection
+        bool useF1Format = [loadMode](){
+            switch (loadMode) {
+                case SSLoadMode::NonProtectedF0Hint:  return false;
+                case SSLoadMode::NonProtectedF1Hint:  return true;
+                case SSLoadMode::NonProtectedDefault: return !isProcessingLegacyFormatOpt(Internal::FormatType::Json).value_or(false);
+                case SSLoadMode::Protected:
+                    assert(false && "Should never reach here");
+                    return false;
+            }
+
+            assert(false && "Should never reach here");
+            return false;
+        }();
+
+        Internal::LegacyFormatScope legacyScope(Internal::FormatType::Json, !useF1Format);
+        ssJsonLoadInternal(value, *temp);
     }
     obj = std::move(*temp);
 }
 
 template<typename T>
-[[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, bool protectedMode /*= true*/)
+[[nodiscard]] T ssJsonLoadRet(const QJsonValue& value, SSLoadMode loadMode /*= SSLoadMode::Protected*/)
 {
     auto result = construct<T>();
-    ssJsonLoad(value, result, protectedMode);
+    ssJsonLoad(value, result, loadMode);
     return result;
 }
 

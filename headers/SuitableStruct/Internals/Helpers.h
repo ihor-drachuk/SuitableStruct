@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <SuitableStruct/Handlers.h>
 
 namespace SuitableStruct {
@@ -21,6 +22,7 @@ enum class FormatType {
     Json
 };
 
+std::optional<bool> isProcessingLegacyFormatOpt(FormatType formatType);
 bool isProcessingLegacyFormat(FormatType formatType);
 
 class LegacyFormatScope {
@@ -33,8 +35,8 @@ public:
 
 private:
     FormatType m_formatType;
-    bool m_previousBinaryState;
-    bool m_previousJsonState;
+    std::optional<bool> m_previousBinaryState;
+    std::optional<bool> m_previousJsonState;
 };
 
 } // namespace Internal

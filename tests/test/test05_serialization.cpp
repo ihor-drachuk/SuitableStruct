@@ -147,7 +147,7 @@ TEST(SuitableStruct, SerializationTest_DateTime)
 
     for (const auto& x : testData) {
         const auto buffer = ssSave(x, false);
-        const auto readBack = ssLoadRet<QDateTime>(buffer, false);
+        const auto readBack = ssLoadRet<QDateTime>(buffer, SSLoadMode::NonProtectedDefault);
         ASSERT_EQ(x, readBack);
         ASSERT_EQ(x.offsetFromUtc(), readBack.offsetFromUtc());
         ASSERT_EQ(x.timeZone(), readBack.timeZone());

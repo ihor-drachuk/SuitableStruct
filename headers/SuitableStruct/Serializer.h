@@ -463,38 +463,14 @@ void ssLoadImpl(BufferReader& bufferReader, T& obj)
     ssLoadImplViaTuple(bufferReader, const_cast_tuple(obj.ssTuple()));
 }
 
-// Overload for internal loading with format info (for F1 non-protected calls)
 template<typename T>
-void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode, bool isFormatF1)
-{
-    if (!protectedMode && isFormatF1) {
-        // For F1 format in non-protected mode, don't read format marker
-        auto temp = construct<T>();
-        ssBeforeLoadImpl(temp);
-
-        if constexpr (std::is_class_v<T>) {
-            ssLoadImplInternal(bufferReader, temp);
-        } else {
-            ssLoadImpl(bufferReader, temp);
-        }
-
-        ssAfterLoadImpl(temp);
-        obj = std::move(temp);
-        return;
-    }
-
-    // Otherwise use standard logic
-    ssLoad(bufferReader, obj, protectedMode);
-}
-
-template<typename T>
-void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
+void ssLoad(BufferReader& bufferReader, T& obj, SSLoadMode loadMode)
 {
     std::unique_ptr<BufferReader> partBufferReaderPtr;
     bool isFormatF1 = false;
 
-    BufferReader& partBufferReader = [&bufferReader, protectedMode, &partBufferReaderPtr, &isFormatF1]() -> BufferReader& {
-        if (protectedMode) {
+    BufferReader& partBufferReader = [&bufferReader, loadMode, &partBufferReaderPtr]() -> BufferReader& {
+        if (loadMode == SSLoadMode::Protected) {
             using HashType = decltype(std::declval<Buffer>().hash());
 
             if (bufferReader.rest() < sizeof(uint64_t) + sizeof(HashType))
@@ -533,7 +509,7 @@ void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
         }
     }();
 
-    if (protectedMode) {
+    if (loadMode == SSLoadMode::Protected) {
         // Read and validate reserved signature only in protected mode
         uint8_t formatMark[Internal::SS_FORMAT_MARK_SIZE];
         partBufferReader.readRaw(formatMark, sizeof(formatMark));
@@ -545,12 +521,32 @@ void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
             Internal::throwFormat();
 
         isFormatF1 = isFormatF1Marker;
+
+    } else {
+        isFormatF1 = [loadMode]() {
+            switch (loadMode) {
+                case SSLoadMode::NonProtectedF0Hint: return false;
+                case SSLoadMode::NonProtectedF1Hint: return true;
+                case SSLoadMode::NonProtectedDefault: return !isProcessingLegacyFormatOpt(Internal::FormatType::Binary).value_or(false);
+                case SSLoadMode::Protected:
+                    assert(false && "Should never reach here");
+                    return false;
+            }
+
+            assert(false && "Should never reach here");
+            return false;
+        }();
     }
 
+    Internal::LegacyFormatScope legacyScope(Internal::FormatType::Binary, !isFormatF1);
+
     if constexpr (std::is_class_v<T>) {
-        if (protectedMode && !isFormatF1) {
+        if (isFormatF1) {
+            // Format F1, multiple-version segments, new hash algorithm
+            ssLoadInternal(partBufferReader, obj);
+
+        } else {
             // Format F0, single-version, old hash algorithm (legacy format)
-            Internal::LegacyFormatScope legacyScope(Internal::FormatType::Binary, true);  // Set F0 format for this entire operation
             auto temp = construct<T>();
             ssBeforeLoadImpl(temp);
 
@@ -560,10 +556,6 @@ void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
 
             ssAfterLoadImpl(temp);
             obj = std::move(temp);
-
-        } else {
-            // Format F1 or unknown format - use internal load logic
-            ssLoadInternal(partBufferReader, obj);
         }
     } else {
         // Primitive type
@@ -576,35 +568,35 @@ void ssLoad(BufferReader& bufferReader, T& obj, bool protectedMode /*= true*/)
 }
 
 template<typename T>
-void ssLoad(BufferReader&& bufferReader, T& obj, bool protectedMode = true)
+void ssLoad(BufferReader&& bufferReader, T& obj, SSLoadMode loadMode = SSLoadMode::Protected)
 {
-    ssLoad(static_cast<BufferReader&>(bufferReader), obj, protectedMode);
+    ssLoad(static_cast<BufferReader&>(bufferReader), obj, loadMode);
 }
 
 template<typename T>
-void ssLoad(const Buffer& buffer, T& obj, bool protectedMode = true)
+void ssLoad(const Buffer& buffer, T& obj, SSLoadMode loadMode = SSLoadMode::Protected)
 {
-    ssLoad(BufferReader(buffer), obj, protectedMode);
+    ssLoad(BufferReader(buffer), obj, loadMode);
 }
 
 template<typename T>
-[[nodiscard]] T ssLoadRet(BufferReader& bufferReader, bool protectedMode /*= true*/)
+[[nodiscard]] T ssLoadRet(BufferReader& bufferReader, SSLoadMode loadMode/* = SSLoadMode::Protected*/)
 {
     auto result = construct<T>();
-    ssLoad(bufferReader, result, protectedMode);
+    ssLoad(bufferReader, result, loadMode);
     return result;
 }
 
 template<typename T>
-[[nodiscard]] T ssLoadRet(BufferReader&& bufferReader, bool protectedMode = true)
+[[nodiscard]] T ssLoadRet(BufferReader&& bufferReader, SSLoadMode loadMode = SSLoadMode::Protected)
 {
-    return ssLoadRet<T>(static_cast<BufferReader&>(bufferReader), protectedMode);
+    return ssLoadRet<T>(static_cast<BufferReader&>(bufferReader), loadMode);
 }
 
 template<typename T>
-[[nodiscard]] T ssLoadRet(const Buffer& buffer, bool protectedMode = true)
+[[nodiscard]] T ssLoadRet(const Buffer& buffer, SSLoadMode loadMode = SSLoadMode::Protected)
 {
-    return ssLoadRet<T>(BufferReader(buffer), protectedMode);
+    return ssLoadRet<T>(BufferReader(buffer), loadMode);
 }
 
 // Internal load function for F1 format (no format markers)

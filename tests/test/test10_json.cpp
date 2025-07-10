@@ -247,7 +247,7 @@ TEST(SuitableStruct, JsonSerialization_Integers)
     }();
 
     Struct2 a, b;
-    ssJsonLoad(testJson, a, false);
+    ssJsonLoad(testJson, a, SSLoadMode::NonProtectedDefault);
 
     ASSERT_EQ(a.a0, 127);
     ASSERT_EQ(a.a1, -0x80);
@@ -305,7 +305,7 @@ TEST(SuitableStruct, JsonSerialization_Integers)
     ASSERT_EQ(serialized, reference);
 
     const auto testJson2 = QJsonDocument::fromJson(reference).array();
-    ssJsonLoad(testJson2, b, false);
+    ssJsonLoad(testJson2, b, SSLoadMode::NonProtectedDefault);
     ASSERT_EQ(a, b);
 }
 
@@ -326,7 +326,7 @@ TEST(SuitableStruct, JsonSerialization_DateTime)
 
     for (const auto& x : testData) {
         const auto buffer = ssJsonSave(x, false);
-        const auto readBack = ssJsonLoadRet<QDateTime>(buffer, false);
+        const auto readBack = ssJsonLoadRet<QDateTime>(buffer, SSLoadMode::NonProtectedDefault);
         ASSERT_EQ(x, readBack);
         ASSERT_EQ(x.offsetFromUtc(), readBack.offsetFromUtc());
         ASSERT_EQ(x.timeZone(), readBack.timeZone());
@@ -436,7 +436,7 @@ TEST(SuitableStruct, JsonSerialization_Corruption)
 
         const auto doc = QJsonDocument::fromJson(jsonCopy.toUtf8());
         if (const auto json = jsonGetter(doc); !json.isNull()) {
-            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+            ASSERT_THROW(ssJsonLoad(json, value2, SSLoadMode::NonProtectedDefault), std::exception);
         }
     }
 
@@ -450,7 +450,7 @@ TEST(SuitableStruct, JsonSerialization_Corruption)
 
         // Truncated JSON should either be unparseable or throw during deserialization
         if (const auto json = jsonGetter(doc); !json.isNull()) {
-            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+            ASSERT_THROW(ssJsonLoad(json, value2, SSLoadMode::NonProtectedDefault), std::exception);
         }
     }
 
@@ -471,7 +471,7 @@ TEST(SuitableStruct, JsonSerialization_Corruption)
 
         const auto doc = QJsonDocument::fromJson(malformedJson);
         if (const auto json = jsonGetter(doc); !json.isNull()) {
-            ASSERT_THROW(ssJsonLoad(json, value2, false), std::exception);
+            ASSERT_THROW(ssJsonLoad(json, value2, SSLoadMode::NonProtectedDefault), std::exception);
         }
     }
 }

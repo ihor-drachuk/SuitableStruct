@@ -191,13 +191,13 @@ void ssLoadImpl(BufferReader& bufferReader, std::chrono::time_point<Clock, Durat
     if (markerLow == Helpers::Timepoint_Marker_v2_Low && markerHigh == Helpers::Timepoint_Marker_v2_High) {
         // New format data
         if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
-            const auto durationSinceEpoch = ssLoadRet<Duration>(bufferReader, false);
+            const auto durationSinceEpoch = ssLoadRet<Duration>(bufferReader, SSLoadMode::NonProtectedDefault);
             const auto systemTp = std::chrono::system_clock::time_point{} + durationSinceEpoch;
             const auto diffFromNow = systemTp - std::chrono::system_clock::now();
             const auto steadyTp = Clock::now() + diffFromNow; // Possible time drift here
             value = steadyTp;
         } else {
-            value = std::chrono::time_point<Clock, Duration>(ssLoadRet<Duration>(bufferReader, false));
+            value = std::chrono::time_point<Clock, Duration>(ssLoadRet<Duration>(bufferReader, SSLoadMode::NonProtectedDefault));
         }
     } else {
         // Old format data
@@ -205,7 +205,7 @@ void ssLoadImpl(BufferReader& bufferReader, std::chrono::time_point<Clock, Durat
 
         if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
             using T = std::chrono::steady_clock::duration;
-            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(bufferReader, false)));
+            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssLoadRet<T>(bufferReader, SSLoadMode::NonProtectedDefault)));
         } else {
             assert(false && "Previous implementation couldn't save other timepoint types!");
         }
@@ -616,7 +616,7 @@ void ssJsonLoadContainerImpl (const QJsonValue& value, C& result)
 
     for (Size i = 0; i < sz; i++) {
         T item;
-        ssJsonLoad(arr.at(i), item, false);
+        ssJsonLoad(arr.at(i), item, SSLoadMode::NonProtectedDefault);
         *sIt++ = std::move(item);
     }
 
@@ -652,7 +652,7 @@ void ssJsonLoadImpl (const QJsonValue& value, std::tuple<Args...>& result)
     assert(value.isArray());
     const auto arr = value.toArray();
     auto it = arr.begin();
-    auto loader = [&value, &it](auto& x){ ssJsonLoad(*it++, x, false); };
+    auto loader = [&value, &it](auto& x){ ssJsonLoad(*it++, x, SSLoadMode::NonProtectedDefault); };
     std::apply([&loader](auto&... xs){ (loader(xs), ...); }, result);
 }
 
@@ -685,7 +685,7 @@ void ssJsonLoadSmartPtrImpl(const QJsonValue& src, SmartPtr<T, Args...>& dst)
         } else {
             temp = SmartPtr<T, Args...>(new T());
         }
-        ssJsonLoad(obj["content"], *temp, false);
+        ssJsonLoad(obj["content"], *temp, SSLoadMode::NonProtectedDefault);
         dst = std::move(temp);
 
     } else {
@@ -708,7 +708,7 @@ void ssJsonLoadSmartPtrImpl(const QJsonValue& src, std::optional<T>& dst)
         } else {
             dst.emplace();
         }
-        ssJsonLoad(obj["content"], *dst, false);
+        ssJsonLoad(obj["content"], *dst, SSLoadMode::NonProtectedDefault);
 
     } else {
         dst.reset();
@@ -737,9 +737,9 @@ void ssJsonLoadImpl(const QJsonValue& src, std::pair<T1, T2>& dst)
     assert(src.isObject());
     const auto obj = src.toObject();
     assert(obj.contains("first"));
-    ssJsonLoad(obj["first"], dst.first, false);
+    ssJsonLoad(obj["first"], dst.first, SSLoadMode::NonProtectedDefault);
     assert(obj.contains("second"));
-    ssJsonLoad(obj["second"], dst.second, false);
+    ssJsonLoad(obj["second"], dst.second, SSLoadMode::NonProtectedDefault);
 }
 
 inline QJsonValue ssJsonSaveImpl(const std::monostate& /*value*/)
@@ -765,7 +765,7 @@ void ssJsonLoadImplVariant(const QJsonValue& src, std::variant<Ts...>& value, ui
 {
     if constexpr (I < sizeof...(Ts)) {
         if (I == readIndex) {
-            value = ssJsonLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(src, false);
+            value = ssJsonLoadRet<std::variant_alternative_t<I, std::variant<Ts...>>>(src, SSLoadMode::NonProtectedDefault);
 
         } else {
             ssJsonLoadImplVariant<I + 1>(src, value, readIndex);
@@ -797,7 +797,7 @@ QJsonValue ssJsonSaveImpl(const std::chrono::duration<Rep, Period>& value)
 template<typename Rep, typename Period>
 void ssJsonLoadImpl(const QJsonValue& src, std::chrono::duration<Rep, Period>& value)
 {
-    value = std::chrono::duration<Rep, Period>(ssJsonLoadRet<Rep>(src, false));
+    value = std::chrono::duration<Rep, Period>(ssJsonLoadRet<Rep>(src, SSLoadMode::NonProtectedDefault));
 }
 
 template<typename Clock, typename Duration>
@@ -826,19 +826,19 @@ void ssJsonLoadImpl(const QJsonValue& src, std::chrono::time_point<Clock, Durati
         // New format data
         const auto newFormatData = src.toObject().value("data");
         if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
-            const auto durationSinceEpoch = ssJsonLoadRet<Duration>(newFormatData, false);
+            const auto durationSinceEpoch = ssJsonLoadRet<Duration>(newFormatData, SSLoadMode::NonProtectedDefault);
             const auto systemTp = std::chrono::system_clock::time_point{} + durationSinceEpoch;
             const auto diffFromNow = systemTp - std::chrono::system_clock::now();
             const auto steadyTp = Clock::now() + diffFromNow; // Possible time drift here
             value = steadyTp;
         } else {
-            value = std::chrono::time_point<Clock, Duration>(ssJsonLoadRet<Duration>(newFormatData, false));
+            value = std::chrono::time_point<Clock, Duration>(ssJsonLoadRet<Duration>(newFormatData, SSLoadMode::NonProtectedDefault));
         }
     } else {
         // Old format data
         if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
             using T = std::chrono::steady_clock::duration;
-            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, false)));
+            value = std::chrono::time_point<Clock, Duration>(typename Clock::time_point(ssJsonLoadRet<T>(src, SSLoadMode::NonProtectedDefault)));
         } else {
             assert(false && "Previous implementation couldn't save other timepoint types!");
         }

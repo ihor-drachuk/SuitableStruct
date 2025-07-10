@@ -72,8 +72,8 @@ Buffer ssSaveImpl(const Struct2& value)
 
 void ssLoadImpl(BufferReader& bufferReader, Struct2& value)
 {
-    ssLoad(bufferReader, value.x, false);
-    ssLoad(bufferReader, value.y, false);
+    ssLoad(bufferReader, value.x, SSLoadMode::NonProtectedDefault);
+    ssLoad(bufferReader, value.y, SSLoadMode::NonProtectedDefault);
 }
 
 } // namespace
