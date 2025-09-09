@@ -57,10 +57,10 @@ struct const_cast_tuple_helper
 {
 };
 
-template<typename Arg0>
-struct const_cast_tuple_helper<std::tuple<Arg0>>
+template<>
+struct const_cast_tuple_helper<std::tuple<>>
 {
-    using type = std::tuple<std::add_lvalue_reference_t<std::remove_const_t<std::decay_t<Arg0>>>>;
+    using type = std::tuple<>;
 };
 
 template<typename Arg0, typename... Args>
