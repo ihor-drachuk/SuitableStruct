@@ -223,13 +223,28 @@ void ssLoadImpl(BufferReader& bufferReader, QDateTime& value)
     const auto time = ssLoadImplRet<QTime>(bufferReader);
 
     switch (timeSpec) {
-        case Qt::LocalTime: [[fallthrough]];
-        case Qt::UTC:
+        case Qt::LocalTime:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time);
+#else
             value = QDateTime(date, time, timeSpec);
+#endif // QT_VERSION
+            break;
+
+        case Qt::UTC:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time, QTimeZone::UTC);
+#else
+            value = QDateTime(date, time, timeSpec);
+#endif // QT_VERSION
             break;
 
         case Qt::OffsetFromUTC:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time, QTimeZone::fromSecondsAheadOfUtc(std::get<OffsetFromUtc>(timeDetails)));
+#else
             value = QDateTime(date, time, timeSpec, std::get<OffsetFromUtc>(timeDetails));
+#endif // QT_VERSION
             break;
 
         case Qt::TimeZone:
@@ -569,14 +584,29 @@ void ssJsonLoadImpl(const QJsonValue& src, QDateTime& value)
     const auto time = ssJsonLoadImplRet<QTime>(obj["time"]);
 
     switch (timeSpec) {
-        case Qt::LocalTime: [[fallthrough]];
-        case Qt::UTC:
+        case Qt::LocalTime:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time);
+#else
             value = QDateTime(date, time, timeSpec);
+#endif // QT_VERSION
+            break;
+
+        case Qt::UTC:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time, QTimeZone::UTC);
+#else
+            value = QDateTime(date, time, timeSpec);
+#endif // QT_VERSION
             break;
 
         case Qt::OffsetFromUTC: {
             const auto offsetFromUtc = ssJsonLoadImplRet<OffsetFromUtc>(obj["offset-from-UTC"]);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+            value = QDateTime(date, time, QTimeZone::fromSecondsAheadOfUtc(offsetFromUtc));
+#else
             value = QDateTime(date, time, timeSpec, offsetFromUtc);
+#endif // QT_VERSION
             break;
         }
 
