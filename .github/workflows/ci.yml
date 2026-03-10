@@ -178,7 +178,7 @@ jobs:
     runs-on: [ubuntu-latest]
 
     container:
-      image: ihordrachuk/id-build-env:linux-clang-tl_missing-qt_5.15.2-codechecker
+      image: ihordrachuk/id-build-env:linux-clang-tl_missing-qt_6.8.3-codechecker
       options: --workdir ${{ github.workspace }}
 
     steps:
