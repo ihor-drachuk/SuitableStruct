@@ -19,6 +19,7 @@ template<typename T> Buffer ssSaveInternal(const T& obj);
 template<typename T> void ssLoad(BufferReader& bufferReader, T& obj, SSLoadMode loadMode = SSLoadMode::Protected);
 template<typename T> [[nodiscard]] T ssLoadRet(BufferReader& bufferReader, SSLoadMode loadMode = SSLoadMode::Protected);
 template<typename T> [[nodiscard]] T ssLoadInternalRet(BufferReader& bufferReader);
+template<typename T> void ssLoadInternal(BufferReader& bufferReader, T& obj);
 
 
 template<typename T> QJsonValue ssJsonSave(const T& obj, bool protectedMode = true);
