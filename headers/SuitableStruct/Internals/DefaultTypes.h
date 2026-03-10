@@ -17,7 +17,6 @@
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Internals/Helpers.h>
 #include <SuitableStruct/Exceptions.h>
-#include <SuitableStruct/Serializer.h>
 #include <SuitableStruct/Handlers.h>
 
 #ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
