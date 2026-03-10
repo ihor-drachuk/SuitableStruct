@@ -15,7 +15,7 @@ jobs:
         os: [linux]
         compiler: [gcc, clang]
         test_libs: [tl_preinstalled, tl_missing]
-        qt: [qt_no, qt_5.15.2, qt_6.6.1]
+        qt: [qt_no, qt_5.15.2, qt_6.8.3]
         build_type: [Debug, Release]
 
     runs-on: ubuntu-latest
@@ -58,9 +58,17 @@ jobs:
       matrix:
         compiler_arch: [x64]
         qt_arch: [win64_msvc2019_64]
-        qt: [qt_no, 5.15.2, 6.6.1]
+        qt: [qt_no, 5.15.2]
         build_type: [Debug, Release]
         include:
+          - compiler_arch: x64
+            qt_arch: win64_msvc2022_64
+            qt: 6.8.3
+            build_type: Debug
+          - compiler_arch: x64
+            qt_arch: win64_msvc2022_64
+            qt: 6.8.3
+            build_type: Release
           - compiler_arch: Win32
             qt_arch: win32_msvc2019
             qt: 5.15.2
@@ -116,7 +124,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        qt: [qt_no, 5.15.2, 6.6.1]
+        qt: [qt_no, 5.15.2, 6.8.3]
         build_type: [Debug, Release]
 
     runs-on: macos-latest
