@@ -317,9 +317,15 @@ TEST(SuitableStruct, JsonSerialization_DateTime)
     const std::vector<QDateTime> testData {
         QDateTime::currentDateTime(),
         QDateTime::currentDateTimeUtc(),
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        QDateTime(date, time),
+        QDateTime(date, time, QTimeZone::UTC),
+        QDateTime(date, time, QTimeZone::fromSecondsAheadOfUtc(60*60*2)),
+#else
         QDateTime(date, time, Qt::LocalTime),
         QDateTime(date, time, Qt::UTC),
         QDateTime(date, time, Qt::OffsetFromUTC, 60*60*2),
+#endif // QT_VERSION
         QDateTime(date, time, QTimeZone("America/New_York")),
         QDateTime(date, time, QTimeZone("sdfgihdsfg"))
     };
