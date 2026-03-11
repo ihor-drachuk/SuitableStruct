@@ -24,7 +24,7 @@ jobs:
       image: ihordrachuk/id-build-env:${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.test_libs }}-${{ matrix.qt }}-${{ matrix.arch || 'default' }}
       options: --workdir ${{ github.workspace }}
 
-    if: "!contains(github.event.head_commit.message, 'Skip build')"
+    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
     timeout-minutes: 30
 
     steps:
@@ -57,26 +57,16 @@ jobs:
       fail-fast: false
       matrix:
         compiler_arch: [x64]
-        qt_arch: [win64_msvc2019_64]
-        qt: [qt_no, 5.15.2]
+        qt: [qt_no, 5.15.2, 6.8.3]
         build_type: [Debug, Release]
         include:
-          - compiler_arch: x64
-            qt_arch: win64_msvc2022_64
-            qt: 6.8.3
-            build_type: Debug
-          - compiler_arch: x64
-            qt_arch: win64_msvc2022_64
-            qt: 6.8.3
-            build_type: Release
           - compiler_arch: Win32
-            qt_arch: win32_msvc2019
             qt: 5.15.2
             build_type: Debug
 
     runs-on: windows-latest
 
-    if: "!contains(github.event.head_commit.message, 'Skip build')"
+    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
     timeout-minutes: 30
 
     steps:
@@ -87,12 +77,12 @@ jobs:
 
       - name: Install Qt
         if: ${{ matrix.qt != 'qt_no' }}
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt }}
           host: windows
           target: desktop
-          arch: ${{ matrix.qt_arch }}
+          arch: ${{ matrix.compiler_arch == 'Win32' && 'win32_msvc2019' || (matrix.qt == '6.8.3' && 'win64_msvc2022_64' || 'win64_msvc2019_64') }}
           dir: ${{github.workspace}}/qt
           cache: true
           setup-python: false
@@ -129,7 +119,7 @@ jobs:
 
     runs-on: macos-latest
 
-    if: "!contains(github.event.head_commit.message, 'Skip build')"
+    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
     timeout-minutes: 30
 
     steps:
@@ -140,7 +130,7 @@ jobs:
 
       - name: Install Qt
         if: ${{ matrix.qt != 'qt_no' }}
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt }}
           host: mac
@@ -174,7 +164,7 @@ jobs:
 
 
   CodeChecker:
-    if: "!contains(github.event.head_commit.message, 'Skip SA')"
+    if: "!contains(github.event.head_commit.message, 'CI skip') && !contains(github.event.head_commit.message, 'Skip CI')"
     runs-on: [ubuntu-latest]
 
     container:
