@@ -97,7 +97,7 @@ template<size_t I = 0, typename... Args,
          typename std::enable_if<!(I >= sizeof...(Args))>::type* = nullptr>
 void ssLoadImplViaTuple(BufferReader& bufferReader, std::tuple<Args...>& args)
 {
-    ssLoad(bufferReader, std::get<I>(args), false);
+    ssLoad(bufferReader, std::get<I>(args), SSLoadMode::NonProtectedDefault);
     ssLoadImplViaTuple<I+1>(bufferReader, args);
 }
 
@@ -118,9 +118,11 @@ void ssLoadImplViaTupleInternal(BufferReader& bufferReader, std::tuple<Args...>&
 
         if constexpr (std::is_class_v<ArgType>) {
             // For class types, read version and use conversion logic
+            ssBeforeLoadImpl(std::get<I>(args));
             uint8_t version {};
             bufferReader.read(version);
             ssLoadAndConvert(bufferReader, std::get<I>(args), version);
+            ssAfterLoadImpl(std::get<I>(args));
         } else {
             // For primitive types, no version byte - use ssLoadImpl directly
             ssLoadImpl(bufferReader, std::get<I>(args));
@@ -263,9 +265,11 @@ template<typename T>
         // For F0 format, individual objects (like variant alternatives) have version bytes
         if constexpr (std::is_class_v<T>) {
             // Class types: read version and use conversion logic
+            ssBeforeLoadImpl(result);
             uint8_t version {};
             bufferReader.read(version);
             ssLoadAndConvert(bufferReader, result, version);
+            ssAfterLoadImpl(result);
         } else {
             // Primitive types
             ssLoadImpl(bufferReader, result);
@@ -620,7 +624,7 @@ void ssLoadInternal(BufferReader& bufferReader, T& obj)
 
         // Iterate over segments. First segment contains highest version.
         bool loaded = false;
-        uint8_t i = 0;
+        uint16_t i = 0;
         for (i = 0; i < segmentsCount; ++i) {
             uint8_t storedVersion {};
             bufferReader.read(storedVersion);

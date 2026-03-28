@@ -15,17 +15,13 @@ static thread_local std::optional<bool> OptIsProcessingLegacyJsonFormat;
 
 std::optional<bool> isProcessingLegacyFormatOpt(FormatType formatType)
 {
-    const auto& optValue = [formatType]() -> const std::optional<bool>& {
-        switch (formatType) {
-            case FormatType::Binary: return OptIsProcessingLegacyBinFormat;
-            case FormatType::Json:   return OptIsProcessingLegacyJsonFormat;
-        }
+    switch (formatType) {
+        case FormatType::Binary: return OptIsProcessingLegacyBinFormat;
+        case FormatType::Json:   return OptIsProcessingLegacyJsonFormat;
+    }
 
-        assert(false && "Should never reach here");
-        return *reinterpret_cast<const std::optional<bool>*>(0);
-    }();
-
-    return optValue;
+    assert(false && "Should never reach here");
+    return {};
 }
 
 bool isProcessingLegacyFormat(FormatType formatType)

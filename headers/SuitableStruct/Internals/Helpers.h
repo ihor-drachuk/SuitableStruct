@@ -248,14 +248,14 @@ template<typename T, typename T2, typename = void>
 struct HasSSDowngradeToInType : std::false_type {};
 
 template<typename T, typename T2>
-struct HasSSDowngradeToInType<T, T2, std::void_t<decltype(std::declval<T>().ssDowngradeTo(std::declval<T2&>()))>> : std::true_type {};
+struct HasSSDowngradeToInType<T, T2, std::void_t<decltype(std::declval<const T>().ssDowngradeTo(std::declval<T2&>()))>> : std::true_type {};
 
 // Check if type has ssDowngradeTo in its Handlers
 template<typename T, typename T2, typename = void>
 struct HasSSDowngradeToInHandlers : std::false_type {};
 
 template<typename T, typename T2>
-struct HasSSDowngradeToInHandlers<T, T2, std::void_t<decltype(Handlers<T>::ssDowngradeTo(std::declval<T>(), std::declval<T2&>()))>> : std::true_type {};
+struct HasSSDowngradeToInHandlers<T, T2, std::void_t<decltype(Handlers<T>::ssDowngradeTo(std::declval<const T&>(), std::declval<T2&>()))>> : std::true_type {};
 
 // Pre/Post operation method definitions
 #define SS_DEFINE_BEFORE_SAVE_CONST() \

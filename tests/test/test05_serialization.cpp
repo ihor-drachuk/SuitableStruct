@@ -161,6 +161,24 @@ TEST(SuitableStruct, SerializationTest_DateTime)
 }
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
+TEST(SuitableStruct, SerializationTest_ssLoadImplWithSsTuple)
+{
+    // Verify that ssLoadImpl works correctly for struct types with ssTuple.
+    // This exercises the ssLoadImplViaTuple code path.
+    SomeStruct1 original;
+    original.a = 42;
+    original.b = "test";
+
+    Buffer buf = ssSaveImpl(original);
+    BufferReader reader(buf);
+
+    SomeStruct1 loaded;
+    ssLoadImpl(reader, loaded);
+
+    ASSERT_EQ(original.a, loaded.a);
+    ASSERT_EQ(original.b, loaded.b);
+}
+
 TEST(SuitableStruct, SerializationTest_OldBoolCompatibility)
 {
     const Buffer oldTrue("\1", 1);
