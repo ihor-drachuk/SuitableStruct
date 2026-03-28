@@ -88,6 +88,8 @@ inline void ssLoadImpl(BufferReader& /*buffer*/, std::monostate& /*value*/)
 template<typename... Ts>
 Buffer ssSaveImpl(const std::variant<Ts...>& value)
 {
+    static_assert(sizeof...(Ts) <= std::numeric_limits<uint8_t>::max(), "std::variant with more than 255 alternatives is not supported");
+
     Buffer result;
     result.write(static_cast<uint8_t>(value.index()));
 
@@ -114,6 +116,8 @@ void ssLoadImplVariant(BufferReader& buffer, std::variant<Ts...>& value, uint8_t
 template<typename... Ts>
 void ssLoadImpl(BufferReader& buffer, std::variant<Ts...>& value)
 {
+    static_assert(sizeof...(Ts) <= std::numeric_limits<uint8_t>::max(), "std::variant with more than 255 alternatives is not supported");
+
     uint8_t index {};
     buffer.read(index);
     assert(index < sizeof...(Ts));
@@ -702,6 +706,8 @@ inline void ssJsonLoadImpl(const QJsonValue& /*src*/, std::monostate& /*value*/)
 template<typename... Ts>
 QJsonValue ssJsonSaveImpl(const std::variant<Ts...>& value)
 {
+    static_assert(sizeof...(Ts) <= std::numeric_limits<uint8_t>::max(), "std::variant with more than 255 alternatives is not supported");
+
     QJsonObject result;
     result["index"] = static_cast<int>(value.index());
     std::visit([&result](const auto& x){ result["value"] = ssJsonSave(x, false); }, value);
@@ -727,6 +733,8 @@ void ssJsonLoadImplVariant(const QJsonValue& src, std::variant<Ts...>& value, ui
 template<typename... Ts>
 void ssJsonLoadImpl(const QJsonValue& src, std::variant<Ts...>& value)
 {
+    static_assert(sizeof...(Ts) <= std::numeric_limits<uint8_t>::max(), "std::variant with more than 255 alternatives is not supported");
+
     QJsonObject obj = src.toObject();
     assert(obj.contains("index") && obj["index"].isDouble());
     assert(obj.contains("value"));

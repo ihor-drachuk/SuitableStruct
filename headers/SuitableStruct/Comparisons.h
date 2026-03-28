@@ -259,14 +259,14 @@ inline bool compareTuplesEq(const Struct& s, const std::tuple<Tp...>& lhs, const
 #define SS_COMPARISONS_OP_EQ_SIMPLE(STRUCT, OP) \
     inline bool operator OP(const STRUCT& lhs, const STRUCT& rhs) \
     { \
-        const auto eq = (lhs.ssTuple() == rhs.ssTuple()); \
+        const auto result = (lhs.ssTuple() == rhs.ssTuple()); \
         return (result OP true); \
     }
 
 #define SS_COMPARISONS_MEMBER_OP_EQ_SIMPLE(STRUCT, OP) \
     inline bool operator OP(const STRUCT& rhs) const \
     { \
-        const auto eq = (lhs.ssTuple() == rhs.ssTuple()); \
+        const auto result = (ssTuple() == rhs.ssTuple()); \
         return (result OP true); \
     }
 
