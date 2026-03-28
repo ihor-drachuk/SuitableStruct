@@ -12,6 +12,11 @@
 #include <QByteArray>
 #include <QString>
 #include <QPoint>
+#include <QPointF>
+#include <QSize>
+#include <QSizeF>
+#include <QRect>
+#include <QRectF>
 #include <QJsonObject>
 #include <QColor>
 #include <QIODevice>
@@ -100,6 +105,92 @@ void ssLoadImpl(BufferReader& bufferReader, QPoint& value)
 {
     ssLoadImpl(bufferReader, value.rx());
     ssLoadImpl(bufferReader, value.ry());
+}
+
+Buffer ssSaveImpl(const QPointF& value)
+{
+    Buffer result;
+    result.write(value.x());
+    result.write(value.y());
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, QPointF& value)
+{
+    qreal x{}, y{};
+    ssLoadImpl(bufferReader, x);
+    ssLoadImpl(bufferReader, y);
+    value = QPointF(x, y);
+}
+
+Buffer ssSaveImpl(const QSize& value)
+{
+    Buffer result;
+    result.write(value.width());
+    result.write(value.height());
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, QSize& value)
+{
+    ssLoadImpl(bufferReader, value.rwidth());
+    ssLoadImpl(bufferReader, value.rheight());
+}
+
+Buffer ssSaveImpl(const QSizeF& value)
+{
+    Buffer result;
+    result.write(value.width());
+    result.write(value.height());
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, QSizeF& value)
+{
+    qreal w{}, h{};
+    ssLoadImpl(bufferReader, w);
+    ssLoadImpl(bufferReader, h);
+    value = QSizeF(w, h);
+}
+
+Buffer ssSaveImpl(const QRect& value)
+{
+    Buffer result;
+    result.write(value.x());
+    result.write(value.y());
+    result.write(value.width());
+    result.write(value.height());
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, QRect& value)
+{
+    int x{}, y{}, w{}, h{};
+    ssLoadImpl(bufferReader, x);
+    ssLoadImpl(bufferReader, y);
+    ssLoadImpl(bufferReader, w);
+    ssLoadImpl(bufferReader, h);
+    value = QRect(x, y, w, h);
+}
+
+Buffer ssSaveImpl(const QRectF& value)
+{
+    Buffer result;
+    result.write(value.x());
+    result.write(value.y());
+    result.write(value.width());
+    result.write(value.height());
+    return result;
+}
+
+void ssLoadImpl(BufferReader& bufferReader, QRectF& value)
+{
+    qreal x{}, y{}, w{}, h{};
+    ssLoadImpl(bufferReader, x);
+    ssLoadImpl(bufferReader, y);
+    ssLoadImpl(bufferReader, w);
+    ssLoadImpl(bufferReader, h);
+    value = QRectF(x, y, w, h);
 }
 
 Buffer ssSaveImpl(const QColor& value)
@@ -352,6 +443,104 @@ void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst)
     const auto obj = src.toObject();
     ssJsonLoadImpl(obj["x"], dst.rx());
     ssJsonLoadImpl(obj["y"], dst.ry());
+}
+
+QJsonValue ssJsonSaveImpl(const QPointF& value)
+{
+    QJsonObject obj;
+    obj["x"] = ssJsonSaveImpl(value.x());
+    obj["y"] = ssJsonSaveImpl(value.y());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QPointF& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    qreal x{}, y{};
+    ssJsonLoadImpl(obj["x"], x);
+    ssJsonLoadImpl(obj["y"], y);
+    dst = QPointF(x, y);
+}
+
+QJsonValue ssJsonSaveImpl(const QSize& value)
+{
+    QJsonObject obj;
+    obj["w"] = ssJsonSaveImpl(value.width());
+    obj["h"] = ssJsonSaveImpl(value.height());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QSize& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    int w{}, h{};
+    ssJsonLoadImpl(obj["w"], w);
+    ssJsonLoadImpl(obj["h"], h);
+    dst = QSize(w, h);
+}
+
+QJsonValue ssJsonSaveImpl(const QSizeF& value)
+{
+    QJsonObject obj;
+    obj["w"] = ssJsonSaveImpl(value.width());
+    obj["h"] = ssJsonSaveImpl(value.height());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QSizeF& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    qreal w{}, h{};
+    ssJsonLoadImpl(obj["w"], w);
+    ssJsonLoadImpl(obj["h"], h);
+    dst = QSizeF(w, h);
+}
+
+QJsonValue ssJsonSaveImpl(const QRect& value)
+{
+    QJsonObject obj;
+    obj["x"] = ssJsonSaveImpl(value.x());
+    obj["y"] = ssJsonSaveImpl(value.y());
+    obj["w"] = ssJsonSaveImpl(value.width());
+    obj["h"] = ssJsonSaveImpl(value.height());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QRect& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    int x{}, y{}, w{}, h{};
+    ssJsonLoadImpl(obj["x"], x);
+    ssJsonLoadImpl(obj["y"], y);
+    ssJsonLoadImpl(obj["w"], w);
+    ssJsonLoadImpl(obj["h"], h);
+    dst = QRect(x, y, w, h);
+}
+
+QJsonValue ssJsonSaveImpl(const QRectF& value)
+{
+    QJsonObject obj;
+    obj["x"] = ssJsonSaveImpl(value.x());
+    obj["y"] = ssJsonSaveImpl(value.y());
+    obj["w"] = ssJsonSaveImpl(value.width());
+    obj["h"] = ssJsonSaveImpl(value.height());
+    return obj;
+}
+
+void ssJsonLoadImpl(const QJsonValue& src, QRectF& dst)
+{
+    assert(src.isObject());
+    const auto obj = src.toObject();
+    qreal x{}, y{}, w{}, h{};
+    ssJsonLoadImpl(obj["x"], x);
+    ssJsonLoadImpl(obj["y"], y);
+    ssJsonLoadImpl(obj["w"], w);
+    ssJsonLoadImpl(obj["h"], h);
+    dst = QRectF(x, y, w, h);
 }
 
 QJsonValue ssJsonSaveImpl(const QColor& value)

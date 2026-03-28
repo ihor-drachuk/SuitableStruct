@@ -25,9 +25,16 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMetaEnum>
+#include <QMap>
+#include <QHash>
 class QByteArray;
 class QString;
 class QPoint;
+class QPointF;
+class QSize;
+class QSizeF;
+class QRect;
+class QRectF;
 class QColor;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class QStringList;
@@ -290,6 +297,16 @@ Buffer ssSaveImpl(const QString& value);
 void ssLoadImpl(BufferReader& bufferReader, QString& value);
 Buffer ssSaveImpl(const QPoint& value);
 void ssLoadImpl(BufferReader& bufferReader, QPoint& value);
+Buffer ssSaveImpl(const QPointF& value);
+void ssLoadImpl(BufferReader& bufferReader, QPointF& value);
+Buffer ssSaveImpl(const QSize& value);
+void ssLoadImpl(BufferReader& bufferReader, QSize& value);
+Buffer ssSaveImpl(const QSizeF& value);
+void ssLoadImpl(BufferReader& bufferReader, QSizeF& value);
+Buffer ssSaveImpl(const QRect& value);
+void ssLoadImpl(BufferReader& bufferReader, QRect& value);
+Buffer ssSaveImpl(const QRectF& value);
+void ssLoadImpl(BufferReader& bufferReader, QRectF& value);
 Buffer ssSaveImpl(const QColor& value);
 void ssLoadImpl(BufferReader& bufferReader, QColor& value);
 Buffer ssSaveImpl(const QJsonValue& value);
@@ -382,6 +399,58 @@ void ssLoadImpl (BufferReader& bufferReader, std::tuple<Args...>& value)
     auto loader = [&bufferReader](auto& x){ ssLoadInternal(bufferReader, x); };
     std::apply([&loader](auto&... xs){ (loader(xs), ...); }, value);
 }
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+// QMap binary
+template<typename Key, typename Value>
+Buffer ssSaveImpl(const QMap<Key, Value>& value)
+{
+    Buffer result;
+    result.write(static_cast<uint64_t>(value.size()));
+    for (auto it = value.keyValueBegin(); it != value.keyValueEnd(); ++it)
+        result += ssSaveInternal(std::pair<Key, Value>(it->first, it->second));
+    return result;
+}
+
+template<typename Key, typename Value>
+void ssLoadImpl(BufferReader& bufferReader, QMap<Key, Value>& value)
+{
+    uint64_t sz;
+    bufferReader.read(sz);
+    QMap<Key, Value> result;
+    for (uint64_t i = 0; i < sz; i++) {
+        std::pair<Key, Value> item;
+        ssLoadInternal(bufferReader, item);
+        result.insert(std::move(item.first), std::move(item.second));
+    }
+    value = std::move(result);
+}
+
+// QHash binary
+template<typename Key, typename Value>
+Buffer ssSaveImpl(const QHash<Key, Value>& value)
+{
+    Buffer result;
+    result.write(static_cast<uint64_t>(value.size()));
+    for (auto it = value.keyValueBegin(); it != value.keyValueEnd(); ++it)
+        result += ssSaveInternal(std::pair<Key, Value>(it->first, it->second));
+    return result;
+}
+
+template<typename Key, typename Value>
+void ssLoadImpl(BufferReader& bufferReader, QHash<Key, Value>& value)
+{
+    uint64_t sz;
+    bufferReader.read(sz);
+    QHash<Key, Value> result;
+    for (uint64_t i = 0; i < sz; i++) {
+        std::pair<Key, Value> item;
+        ssLoadInternal(bufferReader, item);
+        result.insert(std::move(item.first), std::move(item.second));
+    }
+    value = std::move(result);
+}
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 } // namespace SuitableStruct
 
@@ -495,6 +564,16 @@ void ssJsonLoadImpl(const QJsonValue& src, std::string& dst);
 
 QJsonValue ssJsonSaveImpl(const QPoint& value);
 void ssJsonLoadImpl(const QJsonValue& src, QPoint& dst);
+QJsonValue ssJsonSaveImpl(const QPointF& value);
+void ssJsonLoadImpl(const QJsonValue& src, QPointF& dst);
+QJsonValue ssJsonSaveImpl(const QSize& value);
+void ssJsonLoadImpl(const QJsonValue& src, QSize& dst);
+QJsonValue ssJsonSaveImpl(const QSizeF& value);
+void ssJsonLoadImpl(const QJsonValue& src, QSizeF& dst);
+QJsonValue ssJsonSaveImpl(const QRect& value);
+void ssJsonLoadImpl(const QJsonValue& src, QRect& dst);
+QJsonValue ssJsonSaveImpl(const QRectF& value);
+void ssJsonLoadImpl(const QJsonValue& src, QRectF& dst);
 
 QJsonValue ssJsonSaveImpl(const QColor& value);
 void ssJsonLoadImpl(const QJsonValue& src, QColor& dst);
@@ -850,6 +929,54 @@ void ssJsonLoadImpl(const QJsonValue& src, std::chrono::time_point<Clock, Durati
             assert(false && "Previous implementation couldn't save other timepoint types!");
         }
     }
+}
+
+// QMap JSON (binary handled in Containers/QMap.h)
+template<typename Key, typename Value>
+QJsonValue ssJsonSaveImpl(const QMap<Key, Value>& value)
+{
+    QJsonArray result;
+    for (auto it = value.keyValueBegin(); it != value.keyValueEnd(); ++it)
+        result += ssJsonSave(std::pair<Key, Value>(it->first, it->second), false);
+    return result;
+}
+
+template<typename Key, typename Value>
+void ssJsonLoadImpl(const QJsonValue& src, QMap<Key, Value>& dst)
+{
+    assert(src.isArray());
+    const auto arr = src.toArray();
+    QMap<Key, Value> result;
+    for (const auto& elem : arr) {
+        std::pair<Key, Value> item;
+        ssJsonLoad(elem, item, SSLoadMode::NonProtectedDefault);
+        result.insert(std::move(item.first), std::move(item.second));
+    }
+    dst = std::move(result);
+}
+
+// QHash JSON (binary handled in Containers/QHash.h)
+template<typename Key, typename Value>
+QJsonValue ssJsonSaveImpl(const QHash<Key, Value>& value)
+{
+    QJsonArray result;
+    for (auto it = value.keyValueBegin(); it != value.keyValueEnd(); ++it)
+        result += ssJsonSave(std::pair<Key, Value>(it->first, it->second), false);
+    return result;
+}
+
+template<typename Key, typename Value>
+void ssJsonLoadImpl(const QJsonValue& src, QHash<Key, Value>& dst)
+{
+    assert(src.isArray());
+    const auto arr = src.toArray();
+    QHash<Key, Value> result;
+    for (const auto& elem : arr) {
+        std::pair<Key, Value> item;
+        ssJsonLoad(elem, item, SSLoadMode::NonProtectedDefault);
+        result.insert(std::move(item.first), std::move(item.second));
+    }
+    dst = std::move(result);
 }
 
 } // namespace SuitableStruct
