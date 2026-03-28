@@ -23,6 +23,7 @@ struct Full_v0 {
     int a{};
     using ssVersions = std::tuple<Full_v0>;
     auto ssTuple() const { return std::tie(a); }
+    auto ssNamesTuple() const { return std::tie("a"); }
     SS_COMPARISONS_MEMBER(Full_v0)
 };
 
@@ -31,6 +32,7 @@ struct Full_v1 {
     float b{};
     using ssVersions = std::tuple<Full_v0, Full_v1>;
     auto ssTuple() const { return std::tie(a, b); }
+    auto ssNamesTuple() const { return std::tie("a", "b"); }
     SS_COMPARISONS_MEMBER(Full_v1)
 
     void ssUpgradeFrom(const Full_v0& prev) { a = prev.a; b = 1.5f; }
@@ -43,6 +45,7 @@ struct Full_v2 {
     std::string c;
     using ssVersions = std::tuple<Full_v0, Full_v1, Full_v2>;
     auto ssTuple() const { return std::tie(a, b, c); }
+    auto ssNamesTuple() const { return std::tie("a", "b", "c"); }
     SS_COMPARISONS_MEMBER(Full_v2)
 
     void ssUpgradeFrom(const Full_v1& prev) { a = prev.a; b = prev.b; c = "default"; }
@@ -57,6 +60,7 @@ struct Partial_v0 {
     int a{};
     using ssVersions = std::tuple<Partial_v0>;
     auto ssTuple() const { return std::tie(a); }
+    auto ssNamesTuple() const { return std::tie("a"); }
     SS_COMPARISONS_MEMBER(Partial_v0)
 };
 
@@ -66,6 +70,7 @@ struct Partial_v1 {
     using ssVersions = std::tuple<Partial_v0, Partial_v1>;
     using ssDowngradeStop = void;  // Explicit: do NOT write v0 segment
     auto ssTuple() const { return std::tie(a, b); }
+    auto ssNamesTuple() const { return std::tie("a", "b"); }
     SS_COMPARISONS_MEMBER(Partial_v1)
 
     void ssUpgradeFrom(const Partial_v0& prev) { a = prev.a; b = 2.0f; }
@@ -77,6 +82,7 @@ struct Partial_v2 {
     std::string c;
     using ssVersions = std::tuple<Partial_v0, Partial_v1, Partial_v2>;
     auto ssTuple() const { return std::tie(a, b, c); }
+    auto ssNamesTuple() const { return std::tie("a", "b", "c"); }
     SS_COMPARISONS_MEMBER(Partial_v2)
 
     void ssUpgradeFrom(const Partial_v1& prev) { a = prev.a; b = prev.b; c = "upgraded"; }
@@ -91,6 +97,7 @@ struct NoDown_v0 {
     int a{};
     using ssVersions = std::tuple<NoDown_v0>;
     auto ssTuple() const { return std::tie(a); }
+    auto ssNamesTuple() const { return std::tie("a"); }
     SS_COMPARISONS_MEMBER(NoDown_v0)
 };
 
@@ -99,6 +106,7 @@ struct NoDown_v1 {
     float b{};
     using ssVersions = std::tuple<NoDown_v0, NoDown_v1>;
     auto ssTuple() const { return std::tie(a, b); }
+    auto ssNamesTuple() const { return std::tie("a", "b"); }
     SS_COMPARISONS_MEMBER(NoDown_v1)
 
     void ssUpgradeFrom(const NoDown_v0& prev) { a = prev.a; b = 3.0f; }
@@ -112,6 +120,7 @@ struct NoDown_v2 {
     using ssVersions = std::tuple<NoDown_v0, NoDown_v1, NoDown_v2>;
     using ssDowngradeStop = void;  // Only v2 segment written
     auto ssTuple() const { return std::tie(a, b, c); }
+    auto ssNamesTuple() const { return std::tie("a", "b", "c"); }
     SS_COMPARISONS_MEMBER(NoDown_v2)
 
     void ssUpgradeFrom(const NoDown_v1& prev) { a = prev.a; b = prev.b; c = "v2only"; }
@@ -125,6 +134,7 @@ struct HandlersStop_v0 {
     int a{};
     using ssVersions = std::tuple<HandlersStop_v0>;
     auto ssTuple() const { return std::tie(a); }
+    auto ssNamesTuple() const { return std::tie("a"); }
     SS_COMPARISONS_MEMBER(HandlersStop_v0)
 };
 
@@ -133,6 +143,7 @@ struct HandlersStop_v1 {
     float b{};
     using ssVersions = std::tuple<HandlersStop_v0, HandlersStop_v1>;
     auto ssTuple() const { return std::tie(a, b); }
+    auto ssNamesTuple() const { return std::tie("a", "b"); }
     SS_COMPARISONS_MEMBER(HandlersStop_v1)
 
     void ssUpgradeFrom(const HandlersStop_v0& prev) { a = prev.a; b = 4.0f; }
@@ -383,3 +394,77 @@ TEST(SuitableStruct, OptDown_SegmentCount)
         EXPECT_EQ(countBinarySegments(ssSave(obj)), 1);
     }
 }
+
+// ============================================================
+// JSON tests
+// ============================================================
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+#include <SuitableStruct/SerializerJson.h>
+
+TEST(SuitableStruct, OptDown_Json_FullChain)
+{
+    Full_v2 original;
+    original.a = 42;
+    original.b = 3.14f;
+    original.c = "hello";
+
+    const auto json = ssJsonSave(original);
+
+    Full_v2 loaded2;
+    ssJsonLoad(json, loaded2);
+    EXPECT_EQ(loaded2, original);
+
+    Full_v1 loaded1;
+    ssJsonLoad(json, loaded1);
+    EXPECT_EQ(loaded1.a, 42);
+    EXPECT_FLOAT_EQ(loaded1.b, 3.14f);
+
+    Full_v0 loaded0;
+    ssJsonLoad(json, loaded0);
+    EXPECT_EQ(loaded0.a, 42);
+}
+
+TEST(SuitableStruct, OptDown_Json_StopAtV1)
+{
+    Partial_v2 original;
+    original.a = 10;
+    original.b = 2.5f;
+    original.c = "test";
+
+    const auto json = ssJsonSave(original);
+
+    Partial_v2 loaded2;
+    ssJsonLoad(json, loaded2);
+    EXPECT_EQ(loaded2, original);
+
+    Partial_v1 loaded1;
+    ssJsonLoad(json, loaded1);
+    EXPECT_EQ(loaded1.a, 10);
+    EXPECT_FLOAT_EQ(loaded1.b, 2.5f);
+
+    Partial_v0 loaded0;
+    EXPECT_THROW(ssJsonLoad(json, loaded0), VersionError);
+}
+
+TEST(SuitableStruct, OptDown_Json_StopAtV2)
+{
+    NoDown_v2 original;
+    original.a = 99;
+    original.b = 1.0f;
+    original.c = "only_v2";
+
+    const auto json = ssJsonSave(original);
+
+    NoDown_v2 loaded2;
+    ssJsonLoad(json, loaded2);
+    EXPECT_EQ(loaded2, original);
+
+    NoDown_v1 loaded1;
+    EXPECT_THROW(ssJsonLoad(json, loaded1), VersionError);
+
+    NoDown_v0 loaded0;
+    EXPECT_THROW(ssJsonLoad(json, loaded0), VersionError);
+}
+
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

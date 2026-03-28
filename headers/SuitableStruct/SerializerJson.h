@@ -52,7 +52,7 @@ template<typename T> void ssJsonLoadInternal(const QJsonValue& value, T& obj);
 template<typename T>
 void ssJsonLoadAndConvert(const QJsonValue& value, T& obj, const std::optional<uint8_t>& verOpt);
 
-template<size_t Index, typename VersionsTuple, typename CurrentType>
+template<size_t Index, typename VersionsTuple, size_t Offset, typename CurrentType>
 void ssJsonSaveAppendSegment(QJsonArray& segmentsArray, const CurrentType& obj);
 // --------- ---------
 
@@ -67,7 +67,9 @@ QJsonValue ssJsonSaveInternal(const T& obj) {
         // SSVersions_t<T> defaults to std::tuple<T> if no ssVersions is defined,
         // so SSVersion<T>::value will be 0.
         QJsonArray segmentsArray;
-        ssJsonSaveAppendSegment<SSVersion<T>::value, SSVersions_t<T>>(segmentsArray, obj);
+        constexpr size_t tuplePos = std::tuple_size_v<SSVersions_t<T>> - 1;
+        constexpr size_t offset = SSVersionOffset<T>::value;
+        ssJsonSaveAppendSegment<tuplePos, SSVersions_t<T>, offset>(segmentsArray, obj);
         part = segmentsArray;
     } else {
         // Primitives are serialized directly.
@@ -154,14 +156,14 @@ QJsonValue ssJsonSave(const T& obj, bool protectedMode /*= true*/)
     }
 }
 
-template<size_t Index, typename VersionsTuple, typename CurrentType>
+template<size_t Index, typename VersionsTuple, size_t Offset, typename CurrentType>
 void ssJsonSaveAppendSegment(QJsonArray& segmentsArray, const CurrentType& obj)
 {
     using ThisType = std::tuple_element_t<Index, VersionsTuple>;
     static_assert(std::is_same_v<ThisType, CurrentType>, "Type mismatch in ssJsonSaveAppendSegment");
 
     QJsonObject segment;
-    segment[Internal::KEY_VERSION_INDEX] = static_cast<int>(Index);
+    segment[Internal::KEY_VERSION_INDEX] = static_cast<int>(Index + Offset); // Wire version index
 
     ssBeforeSaveImpl(obj);
     segment[Internal::KEY_DATA] = ssJsonSaveImpl(obj);
@@ -191,7 +193,7 @@ void ssJsonSaveAppendSegment(QJsonArray& segmentsArray, const CurrentType& obj)
                 *prevObj = static_cast<PrevType>(obj);
             }
 
-            ssJsonSaveAppendSegment<Index - 1, VersionsTuple>(segmentsArray, *prevObj);
+            ssJsonSaveAppendSegment<Index - 1, VersionsTuple, Offset>(segmentsArray, *prevObj);
         } else {
             static_assert(canDowngrade || hasStop,
                 "ssDowngradeTo() missing for JSON down-conversion between versions. Either:\n"
@@ -254,19 +256,19 @@ void ssJsonLoadImpl(const QJsonValue& value, T& obj)
 
 // Conversion helpers for versioning
 template<size_t I, typename TargetAppType, typename LoadedSegmentType,
-         typename std::enable_if<!(I <= SSVersion<TargetAppType>::value)>::type* = nullptr> // I is out of bounds for iteration
+         typename std::enable_if<!(I <= std::tuple_size_v<SSVersions_t<TargetAppType>> - 1)>::type* = nullptr> // I is out of bounds for iteration
 void ssJsonLoadAndConvertIter2(TargetAppType&, const LoadedSegmentType&)
 {
     Internal::throwVersionError();
 }
 
 template<size_t I, typename TargetAppType, typename LoadedSegmentType,
-         typename std::enable_if<I == SSVersion<TargetAppType>::value>::type* = nullptr> // I is current version of TargetAppType
+         typename std::enable_if<I == std::tuple_size_v<SSVersions_t<TargetAppType>> - 1>::type* = nullptr> // I is last tuple position (current version)
 void ssJsonLoadAndConvertIter2(TargetAppType& obj, const LoadedSegmentType& srcObj)
-{ // srcObj is of type std::tuple_element_t<I-1, SSVersions_t<TargetAppType>> or similar if I > 0
-    // We are converting from version I-1 (srcObj type) to version I (obj type, which is TargetAppType)
+{
+    // Final conversion: srcObj (previous version type) → obj (TargetAppType)
     if constexpr (std::is_same_v<TargetAppType, LoadedSegmentType>) {
-        obj = srcObj; // Should not happen if I == SSVersion and I > 0, unless srcObj was already TargetAppType
+        obj = srcObj;
     } else if constexpr (HasSSUpgradeFromInType<TargetAppType, const LoadedSegmentType&>::value) {
         obj.ssUpgradeFrom(srcObj);
     } else if constexpr (HasSSUpgradeFromInHandlers<TargetAppType, const LoadedSegmentType&>::value) {
@@ -281,13 +283,13 @@ void ssJsonLoadAndConvertIter2(TargetAppType& obj, const LoadedSegmentType& srcO
     }
 }
 
-// Iterate I from (VersionOfLoadedSegmentData + 1) up to SSVersion<TargetAppType>::value
+// Iterate I from (tuplePos of loaded data + 1) up to last tuple position.
 // At each step, convert from std::tuple_element_t<I-1, Versions> to std::tuple_element_t<I, Versions>
 template<size_t I, typename TargetAppType, typename PreviousVersionType, /* PreviousVersionType is type of version I-1 */
-         typename std::enable_if< (I < SSVersion<TargetAppType>::value) && (I < std::tuple_size_v<SSVersions_t<TargetAppType>>) >::type* = nullptr>
+         typename std::enable_if< (I < std::tuple_size_v<SSVersions_t<TargetAppType>> - 1) && (I < std::tuple_size_v<SSVersions_t<TargetAppType>>) >::type* = nullptr>
 void ssJsonLoadAndConvertIter2(TargetAppType& finalObj, const PreviousVersionType& prevVersionObj)
 {
-    using CurrentIterTargetType = std::tuple_element_t<I, SSVersions_t<TargetAppType>>; // Type of version I
+    using CurrentIterTargetType = std::tuple_element_t<I, SSVersions_t<TargetAppType>>;
     auto currentIterObj = construct_unique<CurrentIterTargetType>();
 
     if constexpr (HasSSUpgradeFromInType<CurrentIterTargetType, const PreviousVersionType&>::value) {
@@ -317,25 +319,24 @@ void ssJsonLoadAndConvertIter(const QJsonValue&, TargetAppType&, uint8_t)
 // Then calls Iter2 to convert from `serializedVer` up to `TargetAppType`.
 template<size_t I, typename TargetAppType, /* TargetAppType is the type of `obj` we want to load into */
          typename std::enable_if< I < std::tuple_size_v<SSVersions_t<TargetAppType>> >::type* = nullptr>
-void ssJsonLoadAndConvertIter(const QJsonValue& rawDataForSerializedVer, TargetAppType& objToPopulate, uint8_t serializedVer_actualIndex)
+void ssJsonLoadAndConvertIter(const QJsonValue& rawDataForSerializedVer, TargetAppType& objToPopulate, uint8_t serializedTuplePos)
 {
-    if (serializedVer_actualIndex >= std::tuple_size_v<SSVersions_t<TargetAppType>>) {
+    static constexpr auto lastTuplePos = std::tuple_size_v<SSVersions_t<TargetAppType>> - 1;
+
+    if (serializedTuplePos >= std::tuple_size_v<SSVersions_t<TargetAppType>>) {
         Internal::throwVersionError();
     }
 
-    if (I < serializedVer_actualIndex) {
-        ssJsonLoadAndConvertIter<I+1>(rawDataForSerializedVer, objToPopulate, serializedVer_actualIndex);
-    } else if (I == serializedVer_actualIndex) {
-        // I is now the index of the type that rawDataForSerializedVer represents.
+    if (I < serializedTuplePos) {
+        ssJsonLoadAndConvertIter<I+1>(rawDataForSerializedVer, objToPopulate, serializedTuplePos);
+    } else if (I == serializedTuplePos) {
         using TypeOfSerializedData = std::tuple_element_t<I, SSVersions_t<TargetAppType>>;
         auto loadedSerializedVerObject = construct_unique<TypeOfSerializedData>();
-        ssJsonLoadImpl(rawDataForSerializedVer, *loadedSerializedVerObject); // Load raw data into its original type
+        ssJsonLoadImpl(rawDataForSerializedVer, *loadedSerializedVerObject);
 
-        if constexpr (I == SSVersion<TargetAppType>::value) { // Is serializedVer also the current app version?
-            objToPopulate = std::move(*loadedSerializedVerObject); // Yes, exact match, just move.
+        if constexpr (I == lastTuplePos) {
+            objToPopulate = std::move(*loadedSerializedVerObject);
         } else {
-            // No, serializedVer is older. Start iterative conversion from its type up to TargetAppType.
-            // Start Iter2 from I + 1.
             ssJsonLoadAndConvertIter2<I + 1>(objToPopulate, *loadedSerializedVerObject);
         }
     } else {
@@ -344,34 +345,31 @@ void ssJsonLoadAndConvertIter(const QJsonValue& rawDataForSerializedVer, TargetA
 }
 
 template<typename T>
-void ssJsonLoadAndConvert(const QJsonValue& value, T& obj, const std::optional<uint8_t>& verOpt)
+void ssJsonLoadAndConvert(const QJsonValue& value, T& obj, const std::optional<uint8_t>& wireVerOpt)
 {
-    // 'value' is the actual content data (e.g., from a segment's "data" field or legacy "content")
-    // 'verOpt' is the version_index of this 'value' as read from the stream.
+    // wireVerOpt is the version_index from the wire (offset-adjusted).
     if constexpr (HasSSVersionsInTypeOrHandlers<T>::value) {
-        if (verOpt) {
-            const uint8_t serializedVerIdx = *verOpt;
-            if (serializedVerIdx >= std::tuple_size_v<SSVersions_t<T>>) {
-                Internal::throwVersionError(); // Serialized version index is out of bounds for type T's defined versions
+        if (wireVerOpt) {
+            constexpr auto offset = SSVersionOffset<T>::value;
+            const uint8_t wireVer = *wireVerOpt;
+            if (wireVer < offset) Internal::throwVersionError(); // Forgotten version
+            const uint8_t tuplePos = wireVer - offset;
+            if (tuplePos >= std::tuple_size_v<SSVersions_t<T>>) {
+                Internal::throwVersionError();
             }
-            // Start iterating from version 0 up to serializedVerIdx to load and then convert
-            ssJsonLoadAndConvertIter<0>(value, obj, serializedVerIdx);
+            ssJsonLoadAndConvertIter<0>(value, obj, tuplePos);
         } else {
-            // No version_index provided with the data, but T is versioned.
-            // This implies the data should be for the current version of T, or it's an error.
-            // Let's assume it should be current version if no explicit index.
-            if constexpr (SSVersion<T>::value == 0) { // T has only one version (itself)
-                ssJsonLoadImpl(value, obj); // Load directly as current version
+            if constexpr (std::tuple_size_v<SSVersions_t<T>> == 1) {
+                ssJsonLoadImpl(value, obj);
             } else {
-                // T has multiple versions, but no ver_index given for this data. This is ambiguous/error.
                 Internal::throwFormat();
             }
         }
-    } else { // Type T is not versioned (e.g. primitive or class not in ssVersions system)
-        if (verOpt.has_value() && verOpt.value() != 0) {
-            Internal::throwVersionError(); // Data claims to be version X, but T is not versioned like that.
+    } else {
+        if (wireVerOpt.has_value() && wireVerOpt.value() != 0) {
+            Internal::throwVersionError();
         }
-        ssJsonLoadImpl(value, obj); // Load directly
+        ssJsonLoadImpl(value, obj);
     }
 }
 

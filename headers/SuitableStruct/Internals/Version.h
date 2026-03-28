@@ -53,10 +53,38 @@ struct SSVersions<T, std::enable_if_t<!HasSSVersionsInType<T>::value && HasSSVer
 template<typename T>
 using SSVersions_t = typename SSVersions<T>::type;
 
+// Detect ssVersionOffset in type
+template<typename T, typename = void>
+struct HasSSVersionOffsetInType : std::false_type {};
+
+template<typename T>
+struct HasSSVersionOffsetInType<T, std::void_t<decltype(T::ssVersionOffset)>> : std::true_type {};
+
+// Detect ssVersionOffset in Handlers
+template<typename T, typename = void>
+struct HasSSVersionOffsetInHandlers : std::false_type {};
+
+template<typename T>
+struct HasSSVersionOffsetInHandlers<T, std::void_t<decltype(Handlers<T>::ssVersionOffset)>> : std::true_type {};
+
+// Get offset value (0 by default)
+template<typename T, typename = void>
+struct SSVersionOffset { static constexpr uint8_t value = 0; };
+
+template<typename T>
+struct SSVersionOffset<T, std::enable_if_t<HasSSVersionOffsetInType<T>::value>> {
+    static constexpr uint8_t value = T::ssVersionOffset;
+};
+
+template<typename T>
+struct SSVersionOffset<T, std::enable_if_t<!HasSSVersionOffsetInType<T>::value && HasSSVersionOffsetInHandlers<T>::value>> {
+    static constexpr uint8_t value = Handlers<T>::ssVersionOffset;
+};
+
 template<typename T>
 struct SSVersion
 {
-    static constexpr auto value = std::tuple_size_v<SSVersions_t<T>> - 1;
+    static constexpr auto value = SSVersionOffset<T>::value + std::tuple_size_v<SSVersions_t<T>> - 1;
 };
 
 } // namespace SuitableStruct

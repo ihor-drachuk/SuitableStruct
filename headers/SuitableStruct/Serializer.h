@@ -138,12 +138,13 @@ void ssLoadImplViaTupleInternal(BufferReader& bufferReader, std::tuple<Args...>&
 template<size_t I, typename T, typename T2>
 void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
 {
-    static_assert(I <= SSVersion<T>::value, "ssLoadAndConvertIter2: I is out of bounds");
+    static constexpr auto lastTuplePos = std::tuple_size_v<SSVersions_t<T>> - 1;
+    static_assert(I <= lastTuplePos, "ssLoadAndConvertIter2: I is out of bounds");
 
     using TargetType = std::tuple_element_t<I, SSVersions_t<T>>;
     std::unique_ptr<TargetType> tempObj;
     auto& target = [&]() -> auto& {
-        if constexpr (I == SSVersion<T>::value) {
+        if constexpr (I == lastTuplePos) {
             return obj;
         } else {
             tempObj = construct_unique<TargetType>();
@@ -164,50 +165,51 @@ void ssLoadAndConvertIter2(T& obj, T2&& srcObj)
                       "ssUpgradeFrom() missing for up-conversion between versions");
     }
 
-    if constexpr (I < SSVersion<T>::value)
+    if constexpr (I < lastTuplePos)
         ssLoadAndConvertIter2<I+1>(obj, std::move(target));
 }
 
 template<size_t I, typename T>
-void ssLoadAndConvertIter(BufferReader& bufferReader, T& obj, uint8_t serializedVer)
+void ssLoadAndConvertIter(BufferReader& bufferReader, T& obj, uint8_t serializedTuplePos)
 {
-    if (serializedVer >= std::tuple_size_v<SSVersions_t<T>>) {
-        // New format guarantees that serializedVer is always less than the size of SSVersions_t<T>,
-        // but downgrade attempt on previous version leads us to this point.
+    static constexpr auto lastTuplePos = std::tuple_size_v<SSVersions_t<T>> - 1;
+
+    if (serializedTuplePos >= std::tuple_size_v<SSVersions_t<T>>) {
         Internal::throwVersionError();
     }
 
     using CurrentType = std::tuple_element_t<I, SSVersions_t<T>>;
 
-    if constexpr (I < std::tuple_size_v<SSVersions_t<T>> - 1) {
-        static_assert(I != SSVersion<T>::value);
-
-        if (I < serializedVer) {
-            ssLoadAndConvertIter<I+1>(bufferReader, obj, serializedVer);
+    if constexpr (I < lastTuplePos) {
+        if (I < serializedTuplePos) {
+            ssLoadAndConvertIter<I+1>(bufferReader, obj, serializedTuplePos);
         } else {
             auto tempObj = construct<CurrentType>();
             ssLoadImplInternal(bufferReader, tempObj);
             ssLoadAndConvertIter2<I>(obj, std::move(tempObj));
         }
 
-    } else if constexpr (I == std::tuple_size_v<SSVersions_t<T>> - 1) {
-        assert(serializedVer == I);
+    } else if constexpr (I == lastTuplePos) {
+        assert(serializedTuplePos == I);
         ssLoadImplInternal(bufferReader, obj);
 
     } else {
-        //static_assert(false, "ssLoadAndConvertIter: I is out of bounds");
         assert(false && "ssLoadAndConvertIter: I is out of bounds");
     }
 }
 
 template<typename T>
-void ssLoadAndConvert(BufferReader& bufferReader, T& obj, const std::optional<uint8_t>& ver)
+void ssLoadAndConvert(BufferReader& bufferReader, T& obj, const std::optional<uint8_t>& wireVer)
 {
     static_assert(std::is_class_v<T>);
-    ssLoadAndConvertIter<0>(bufferReader, obj, ver.value_or(0));
+    constexpr auto offset = SSVersionOffset<T>::value;
+    const auto ver = wireVer.value_or(offset); // default = first known version
+    if (ver < offset) Internal::throwVersionError(); // Forgotten version
+    const uint8_t tuplePos = ver - offset;
+    ssLoadAndConvertIter<0>(bufferReader, obj, tuplePos);
 }
 
-template<size_t Index, typename VersionsTuple, typename CurrentType>
+template<size_t Index, typename VersionsTuple, size_t Offset, typename CurrentType>
 void ssSaveAppendSegment(Buffer& part, uint8_t& segmentsWritten, const CurrentType& obj)
 {
     using ThisType = std::tuple_element_t<Index, VersionsTuple>;
@@ -218,7 +220,7 @@ void ssSaveAppendSegment(Buffer& part, uint8_t& segmentsWritten, const CurrentTy
     versionData += ssSaveImpl(obj);
     ssAfterSaveImpl(obj);
 
-    part.write(static_cast<uint8_t>(Index));
+    part.write(static_cast<uint8_t>(Index + Offset)); // Wire version index = tuple position + offset
     part.write(static_cast<uint64_t>(versionData.size()));
     part += versionData;
     segmentsWritten++;
@@ -246,7 +248,7 @@ void ssSaveAppendSegment(Buffer& part, uint8_t& segmentsWritten, const CurrentTy
                 prevObj = static_cast<PrevType>(obj);
             }
 
-            ssSaveAppendSegment<Index - 1, VersionsTuple>(part, segmentsWritten, prevObj);
+            ssSaveAppendSegment<Index - 1, VersionsTuple, Offset>(part, segmentsWritten, prevObj);
         } else {
             static_assert(canDowngrade || hasStop,
                 "ssDowngradeTo() missing for down-conversion between versions. Either:\n"
@@ -374,7 +376,9 @@ Buffer ssSaveInternal(const T& obj)
         const size_t countOffset = part.size();
         part.write(static_cast<uint8_t>(0)); // placeholder
         uint8_t segmentsWritten {};
-        ssSaveAppendSegment<SSVersion<T>::value, SSVersions_t<T>>(part, segmentsWritten, obj);
+        constexpr size_t tuplePos = std::tuple_size_v<SSVersions_t<T>> - 1;
+        constexpr size_t offset = SSVersionOffset<T>::value;
+        ssSaveAppendSegment<tuplePos, SSVersions_t<T>, offset>(part, segmentsWritten, obj);
         part.data()[countOffset] = segmentsWritten;
     } else {
         // Primitive types
