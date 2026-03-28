@@ -336,11 +336,11 @@ struct MyStruct {
 
 ### Optional Downgrade
 
-`ssDowngradeTo` is optional. Without it, older apps won't be able to read the data (upgrade still works). Use `ssDowngradeStop` to explicitly opt out:
+Use `= delete` to explicitly opt out of writing older version data:
 
 ```cpp
 struct MyStruct {
-    using ssDowngradeStop = void;  // Only the current version is written
+    void ssDowngradeTo(MyStruct_v1&) const = delete;  // Only the current version is written
     // ...
 };
 ```

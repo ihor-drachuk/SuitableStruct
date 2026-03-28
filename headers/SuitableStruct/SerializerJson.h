@@ -174,15 +174,14 @@ void ssJsonSaveAppendSegment(QJsonArray& segmentsArray, const CurrentType& obj)
     if constexpr (Index > 0) {
         using PrevType = std::tuple_element_t<Index - 1, VersionsTuple>;
 
-        constexpr bool hasStop = HasSSDowngradeStop<ThisType>::value;
         constexpr bool canDowngrade =
             HasSSDowngradeToInType<ThisType, PrevType&>::value ||
             HasSSDowngradeToInHandlers<ThisType, PrevType&>::value ||
             std::is_convertible_v<ThisType, PrevType>;
+        constexpr bool hasDowngradeName = HasSSDowngradeToName<ThisType>::value;
+        constexpr bool isDeletedDowngrade = hasDowngradeName && !canDowngrade;
 
-        if constexpr (hasStop) {
-            // Explicit opt-out from downgrade. Stop writing older segments.
-        } else if constexpr (canDowngrade) {
+        if constexpr (canDowngrade) {
             auto prevObj = construct_unique<PrevType>();
 
             if constexpr (HasSSDowngradeToInType<ThisType, PrevType&>::value) {
@@ -194,11 +193,13 @@ void ssJsonSaveAppendSegment(QJsonArray& segmentsArray, const CurrentType& obj)
             }
 
             ssJsonSaveAppendSegment<Index - 1, VersionsTuple, Offset>(segmentsArray, *prevObj);
+        } else if constexpr (isDeletedDowngrade) {
+            // ssDowngradeTo = delete: explicit opt-out, stop writing older segments
         } else {
-            static_assert(canDowngrade || hasStop,
+            static_assert(canDowngrade || isDeletedDowngrade,
                 "ssDowngradeTo() missing for JSON down-conversion between versions. Either:\n"
                 "  1) Implement: void ssDowngradeTo(PrevType&) const { ... }\n"
-                "  2) Opt out:   using ssDowngradeStop = void;");
+                "  2) Opt out:   void ssDowngradeTo(PrevType&) const = delete;");
         }
     }
 }

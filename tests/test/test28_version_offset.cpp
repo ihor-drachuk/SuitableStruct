@@ -438,7 +438,7 @@ TEST(SuitableStruct, Offset_InHandlers)
 }
 
 // ============================================================
-// Combined: ssVersionOffset + ssDowngradeStop
+// Combined: ssVersionOffset + ssDowngradeTo = delete
 // ============================================================
 
 namespace {
@@ -458,13 +458,13 @@ struct Combined_v3 {
     float b{};
     std::string c;
     using ssVersions = std::tuple<Combined_v2, Combined_v3>;
-    using ssDowngradeStop = void; // Only v3 segment written
     static constexpr uint8_t ssVersionOffset = 2;
     auto ssTuple() const { return std::tie(a, b, c); }
     auto ssNamesTuple() const { return std::tie("a", "b", "c"); }
     SS_COMPARISONS_MEMBER(Combined_v3)
 
     void ssUpgradeFrom(const Combined_v2& prev) { a = prev.a; b = prev.b; c = "combined"; }
+    void ssDowngradeTo(Combined_v2&) const = delete; // Only v3 segment written
 };
 
 } // namespace
@@ -478,7 +478,7 @@ TEST(SuitableStruct, Offset_CombinedWithDowngradeStop)
 
     const auto buf = ssSave(original);
 
-    // ssDowngradeStop → only 1 segment, wire version = 3 (offset=2, tuplePos=1)
+    // ssDowngradeTo = delete → only 1 segment, wire version = 3 (offset=2, tuplePos=1)
     EXPECT_EQ(countBinarySegments(buf), 1);
     auto versions = allSegmentWireVersions(buf);
     ASSERT_EQ(versions.size(), 1u);

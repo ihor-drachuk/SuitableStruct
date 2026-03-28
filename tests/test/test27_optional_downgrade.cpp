@@ -2,7 +2,7 @@
  * Source:   https://github.com/ihor-drachuk/SuitableStruct
  * Contact:  ihor-drachuk-libs@pm.me  */
 
-// Tests for explicit opt-out from downgrade (ssDowngradeStop) and
+// Tests for explicit opt-out from downgrade (ssDowngradeTo = delete) and
 // VersionError behavior when older reader encounters data without
 // a matching version segment.
 
@@ -53,7 +53,7 @@ struct Full_v2 {
 };
 
 // ============================================================
-// Partial chain: v2→v1 has downgrade, v1 has ssDowngradeStop
+// Partial chain: v2→v1 has downgrade, v1→v0 downgrade is deleted
 // ============================================================
 
 struct Partial_v0 {
@@ -68,12 +68,12 @@ struct Partial_v1 {
     int a{};
     float b{};
     using ssVersions = std::tuple<Partial_v0, Partial_v1>;
-    using ssDowngradeStop = void;  // Explicit: do NOT write v0 segment
     auto ssTuple() const { return std::tie(a, b); }
     auto ssNamesTuple() const { return std::tie("a", "b"); }
     SS_COMPARISONS_MEMBER(Partial_v1)
 
     void ssUpgradeFrom(const Partial_v0& prev) { a = prev.a; b = 2.0f; }
+    void ssDowngradeTo(Partial_v0&) const = delete;  // Explicit: do NOT write v0 segment
 };
 
 struct Partial_v2 {
@@ -90,7 +90,7 @@ struct Partial_v2 {
 };
 
 // ============================================================
-// No downgrade at all: v2 has ssDowngradeStop
+// No downgrade at all: v2 has ssDowngradeTo = delete
 // ============================================================
 
 struct NoDown_v0 {
@@ -118,16 +118,16 @@ struct NoDown_v2 {
     float b{};
     std::string c;
     using ssVersions = std::tuple<NoDown_v0, NoDown_v1, NoDown_v2>;
-    using ssDowngradeStop = void;  // Only v2 segment written
     auto ssTuple() const { return std::tie(a, b, c); }
     auto ssNamesTuple() const { return std::tie("a", "b", "c"); }
     SS_COMPARISONS_MEMBER(NoDown_v2)
 
     void ssUpgradeFrom(const NoDown_v1& prev) { a = prev.a; b = prev.b; c = "v2only"; }
+    void ssDowngradeTo(NoDown_v1&) const = delete;  // Only v2 segment written
 };
 
 // ============================================================
-// Handlers-based ssDowngradeStop
+// Handlers-based serialization with deleted downgrade on type
 // ============================================================
 
 struct HandlersStop_v0 {
@@ -147,15 +147,14 @@ struct HandlersStop_v1 {
     SS_COMPARISONS_MEMBER(HandlersStop_v1)
 
     void ssUpgradeFrom(const HandlersStop_v0& prev) { a = prev.a; b = 4.0f; }
+    void ssDowngradeTo(HandlersStop_v0&) const = delete;
 };
 
 } // namespace
 
-// Declare ssDowngradeStop via Handlers
+// Custom Handlers (serialization via Handlers, downgrade opt-out via = delete on type)
 template<>
 struct SuitableStruct::Handlers<HandlersStop_v1> : std::true_type {
-    using ssDowngradeStop = void;
-
     static Buffer ssSaveImpl(const HandlersStop_v1& obj) {
         Buffer buf;
         buf += SuitableStruct::ssSaveInternal(obj.a);
@@ -287,7 +286,7 @@ TEST(SuitableStruct, OptDown_StopAtV2)
 }
 
 // ============================================================
-// Tests: ssDowngradeStop via Handlers
+// Tests: Handlers-based serialization with deleted downgrade
 // ============================================================
 
 TEST(SuitableStruct, OptDown_StopInHandlers)
@@ -396,6 +395,27 @@ TEST(SuitableStruct, OptDown_SegmentCount)
 }
 
 // ============================================================
+// Tests: upgrade through deleted-downgrade boundary
+// Save as v0, load as v2 (v1 has deleted downgrade, but upgrade still works)
+// ============================================================
+
+TEST(SuitableStruct, OptDown_UpgradeThroughDeletedBoundary)
+{
+    // Save as Partial_v0
+    Partial_v0 v0;
+    v0.a = 33;
+    const auto buf = ssSave(v0);
+
+    // Load as Partial_v2 — should upgrade v0→v1→v2
+    // v1 has ssDowngradeTo = delete, but ssUpgradeFrom works fine
+    Partial_v2 loaded;
+    ssLoad(buf, loaded);
+    EXPECT_EQ(loaded.a, 33);
+    EXPECT_FLOAT_EQ(loaded.b, 2.0f);  // from v1::ssUpgradeFrom
+    EXPECT_EQ(loaded.c, "upgraded");   // from v2::ssUpgradeFrom
+}
+
+// ============================================================
 // JSON tests
 // ============================================================
 
@@ -465,6 +485,19 @@ TEST(SuitableStruct, OptDown_Json_StopAtV2)
 
     NoDown_v0 loaded0;
     EXPECT_THROW(ssJsonLoad(json, loaded0), VersionError);
+}
+
+TEST(SuitableStruct, OptDown_Json_UpgradeThroughDeletedBoundary)
+{
+    Partial_v0 v0;
+    v0.a = 33;
+    const auto json = ssJsonSave(v0);
+
+    Partial_v2 loaded;
+    ssJsonLoad(json, loaded);
+    EXPECT_EQ(loaded.a, 33);
+    EXPECT_FLOAT_EQ(loaded.b, 2.0f);
+    EXPECT_EQ(loaded.c, "upgraded");
 }
 
 #endif // SUITABLE_STRUCT_HAS_QT_LIBRARY

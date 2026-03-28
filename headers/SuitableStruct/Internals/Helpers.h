@@ -257,24 +257,25 @@ struct HasSSDowngradeToInHandlers : std::false_type {};
 template<typename T, typename T2>
 struct HasSSDowngradeToInHandlers<T, T2, std::void_t<decltype(Handlers<T>::ssDowngradeTo(std::declval<const T&>(), std::declval<T2&>()))>> : std::true_type {};
 
-// Check if type has ssDowngradeStop in itself (explicit opt-out from downgrade)
-template<typename T, typename = void>
-struct HasSSDowngradeStopInType : std::false_type {};
-
-template<typename T>
-struct HasSSDowngradeStopInType<T, std::void_t<typename T::ssDowngradeStop>> : std::true_type {};
-
-// Check if type has ssDowngradeStop in its Handlers
-template<typename T, typename = void>
-struct HasSSDowngradeStopInHandlers : std::false_type {};
-
-template<typename T>
-struct HasSSDowngradeStopInHandlers<T, std::void_t<typename Handlers<T>::ssDowngradeStop>> : std::true_type {};
-
-template<typename T>
-struct HasSSDowngradeStop {
-    static constexpr bool value = HasSSDowngradeStopInType<T>::value || HasSSDowngradeStopInHandlers<T>::value;
+// Detect if a member named ssDowngradeTo is declared (even if = delete)
+// Uses the "ambiguous member lookup" idiom: inherit from T and a base with ssDowngradeTo.
+// If T has any member named ssDowngradeTo, the lookup is ambiguous → SFINAE failure → true.
+namespace Internal {
+struct DowngradeNameDetectorBase {
+    struct tag {};
+    void ssDowngradeTo(tag);
 };
+
+template<typename T>
+struct DowngradeNameDerived : T, DowngradeNameDetectorBase {};
+} // namespace Internal
+
+template<typename T, typename = void>
+struct HasSSDowngradeToName : std::true_type {};  // ambiguous = T has the name
+
+template<typename T>
+struct HasSSDowngradeToName<T, std::void_t<decltype(&Internal::DowngradeNameDerived<T>::ssDowngradeTo)>> : std::false_type {};
+// unambiguous = only base has it = T does NOT have ssDowngradeTo
 
 // Pre/Post operation method definitions
 #define SS_DEFINE_BEFORE_SAVE_CONST() \
