@@ -208,7 +208,7 @@ void ssLoadAndConvert(BufferReader& bufferReader, T& obj, const std::optional<ui
 }
 
 template<size_t Index, typename VersionsTuple, typename CurrentType>
-void ssSaveAppendSegment(Buffer& part, const CurrentType& obj)
+void ssSaveAppendSegment(Buffer& part, uint8_t& segmentsWritten, const CurrentType& obj)
 {
     using ThisType = std::tuple_element_t<Index, VersionsTuple>;
     static_assert(std::is_same_v<ThisType, CurrentType>, "Type mismatch in ssSaveAppendSegment");
@@ -221,25 +221,38 @@ void ssSaveAppendSegment(Buffer& part, const CurrentType& obj)
     part.write(static_cast<uint8_t>(Index));
     part.write(static_cast<uint64_t>(versionData.size()));
     part += versionData;
+    segmentsWritten++;
 
     // Prepare previous version if exists
     if constexpr (Index > 0) {
         using PrevType = std::tuple_element_t<Index - 1, VersionsTuple>;
-        PrevType prevObj = construct<PrevType>();
 
-        if constexpr (HasSSDowngradeToInType<ThisType, PrevType&>::value) {
-            const_cast<ThisType&>(obj).ssDowngradeTo(prevObj);
-        } else if constexpr (HasSSDowngradeToInHandlers<ThisType, PrevType&>::value) {
-            Handlers<ThisType>::ssDowngradeTo(obj, prevObj);
-        } else if constexpr (std::is_convertible_v<ThisType, PrevType>) {
-            prevObj = static_cast<PrevType>(obj);
+        constexpr bool hasStop = HasSSDowngradeStop<ThisType>::value;
+        constexpr bool canDowngrade =
+            HasSSDowngradeToInType<ThisType, PrevType&>::value ||
+            HasSSDowngradeToInHandlers<ThisType, PrevType&>::value ||
+            std::is_convertible_v<ThisType, PrevType>;
+
+        if constexpr (hasStop) {
+            // Explicit opt-out from downgrade. Stop writing older segments.
+        } else if constexpr (canDowngrade) {
+            PrevType prevObj = construct<PrevType>();
+
+            if constexpr (HasSSDowngradeToInType<ThisType, PrevType&>::value) {
+                obj.ssDowngradeTo(prevObj);
+            } else if constexpr (HasSSDowngradeToInHandlers<ThisType, PrevType&>::value) {
+                Handlers<ThisType>::ssDowngradeTo(obj, prevObj);
+            } else {
+                prevObj = static_cast<PrevType>(obj);
+            }
+
+            ssSaveAppendSegment<Index - 1, VersionsTuple>(part, segmentsWritten, prevObj);
         } else {
-            static_assert(HasSSDowngradeToInType<ThisType, PrevType&>::value || HasSSDowngradeToInHandlers<ThisType, PrevType&>::value,
-                          "ssDowngradeTo() missing for down-conversion between versions");
+            static_assert(canDowngrade || hasStop,
+                "ssDowngradeTo() missing for down-conversion between versions. Either:\n"
+                "  1) Implement: void ssDowngradeTo(PrevType&) const { ... }\n"
+                "  2) Opt out:   using ssDowngradeStop = void;");
         }
-
-        // Recursive call for next segment
-        ssSaveAppendSegment<Index - 1, VersionsTuple>(part, prevObj);
     }
 }
 
@@ -357,9 +370,12 @@ Buffer ssSaveInternal(const T& obj)
     Buffer part;
 
     if constexpr (std::is_class_v<T>) {
-        const uint8_t segmentsCount = static_cast<uint8_t>(std::tuple_size_v<SSVersions_t<T>>);
-        part.write(segmentsCount);
-        ssSaveAppendSegment<SSVersion<T>::value, SSVersions_t<T>>(part, obj);
+        // Write placeholder for segment count, then patch after recursion
+        const size_t countOffset = part.size();
+        part.write(static_cast<uint8_t>(0)); // placeholder
+        uint8_t segmentsWritten {};
+        ssSaveAppendSegment<SSVersion<T>::value, SSVersions_t<T>>(part, segmentsWritten, obj);
+        part.data()[countOffset] = segmentsWritten;
     } else {
         // Primitive types
         ssBeforeSaveImpl(obj);
