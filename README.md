@@ -21,10 +21,11 @@
 
 - **Binary Serialization** — Fast, compact binary format with hash-based integrity validation
 - **JSON Serialization** — Human-readable format with Qt integration (optional)
-- **Versioning System** — Seamless struct evolution with automatic migration between versions
+- **Forward & Backward Compatible Versioning** — Newer apps read older data, older apps read newer data
 - **Comparison Operators** — Auto-generated `==`, `!=`, `<`, `<=`, `>`, `>=` operators
 - **Hash Functions** — `std::hash` and `qHash` support for use in containers
-- **Extensive Type Support** — STL containers, smart pointers, `std::optional`, Qt types
+- **Before/After Hooks** — Optional callbacks before and after save/load operations
+- **Extensive Type Support** — STL containers, maps, `std::variant`, `std::chrono`, smart pointers, Qt types
 - **Custom Handlers** — Extend serialization for any type
 - **Cross-Platform** — Linux, Windows, macOS with GCC, Clang, MSVC
 
@@ -131,7 +132,7 @@ try {
 
 ### Struct Versioning
 
-Evolve your data structures while maintaining backward compatibility:
+Evolve your data structures freely. Versioning works both ways — newer apps read older data, and older apps read newer data:
 
 ```cpp
 // Version 0: Original structure
@@ -148,9 +149,15 @@ struct Settings_v1 {
 
     auto ssTuple() const { return std::tie(username, email); }
 
-    void ssConvertFrom(const Settings_v0& old) {
-        username = old.username;
-        email = "";  // Default value for new field
+    // Upgrade: how to populate v1 from v0
+    void ssUpgradeFrom(Settings_v0&& old) {
+        username = std::move(old.username);
+        email = "";
+    }
+
+    // Downgrade: how to populate v0 from v1
+    void ssDowngradeTo(Settings_v0& prev) const {
+        prev.username = username;
     }
 };
 
@@ -160,22 +167,28 @@ struct Settings {
     std::string email;
     std::string theme;
 
-    // Declare version chain
     using ssVersions = std::tuple<Settings_v0, Settings_v1, Settings>;
 
     auto ssTuple() const { return std::tie(username, email, theme); }
 
-    void ssConvertFrom(const Settings_v1& old) {
-        username = old.username;
-        email = old.email;
-        theme = "light";  // Default theme
+    void ssUpgradeFrom(Settings_v1&& old) {
+        username = std::move(old.username);
+        email = std::move(old.email);
+        theme = "light";
+    }
+
+    void ssDowngradeTo(Settings_v1& prev) const {
+        prev.username = username;
+        prev.email = email;
     }
 };
 
-// Old data automatically migrates to current version
-Buffer oldData = ssSave(Settings_v0{"john"});
-Settings current = ssLoadRet<Settings>(oldData);
-// current.username == "john", current.email == "", current.theme == "light"
+// New app saves data — older apps can still load it
+Buffer data = ssSave(Settings{"john", "john@mail.com", "dark"});
+
+// An older app (knowing only v0) loads the same data:
+Settings_v0 old = ssLoadRet<Settings_v0>(data);
+// old.username == "john"
 ```
 
 ### JSON Serialization (with Qt)
@@ -235,6 +248,24 @@ struct Handlers<Point3D> : public std::true_type {
 } // namespace SuitableStruct
 ```
 
+### Before/After Hooks
+
+Optional callbacks around serialization:
+
+```cpp
+struct AuditedData {
+    int value {};
+    mutable bool saved {};
+
+    auto ssTuple() const { return std::tie(value); }
+
+    SS_DEFINE_BEFORE_SAVE_CONST() { /* called before save */ }
+    SS_DEFINE_AFTER_SAVE_CONST()  { saved = true; }
+    SS_DEFINE_BEFORE_LOAD()       { /* called before load */ }
+    SS_DEFINE_AFTER_LOAD()        { /* called after load */ }
+};
+```
+
 ---
 
 ## Supported Types
@@ -243,26 +274,100 @@ struct Handlers<Point3D> : public std::true_type {
 `bool`, `char`, `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, `double`
 
 ### Standard Library
-- **Containers**: `std::vector`, `std::list`, `std::deque`, `std::array`, `std::set`, `std::multiset`, `std::unordered_set`, `std::unordered_multiset`, `std::forward_list`
+- **Sequence Containers**: `std::vector`, `std::list`, `std::deque`, `std::array`, `std::forward_list`
+- **Associative Containers**: `std::set`, `std::multiset`, `std::map`, `std::multimap`
+- **Unordered Containers**: `std::unordered_set`, `std::unordered_multiset`, `std::unordered_map`
 - **Strings**: `std::string`
-- **Smart Pointers**: `std::shared_ptr`, `std::unique_ptr`, `std::weak_ptr`
-- **Utilities**: `std::optional`, `std::pair`, `std::tuple`
+- **Smart Pointers**: `std::shared_ptr`, `std::unique_ptr`
+- **Utilities**: `std::optional`, `std::pair`, `std::tuple`, `std::variant`, `std::monostate`
+- **Chrono**: `std::chrono::duration`, `std::chrono::time_point`
 - **Enums**: All enum types
 
 ### Qt Types (when available)
-`QString`, `QByteArray`, `QPoint`, `QPointF`, `QSize`, `QSizeF`, `QRect`, `QRectF`, `QColor`, `QVector`, `QList`, `QStringList`, `QSet`, `QMap`, `QJsonValue`, `QJsonObject`, `QJsonArray`
+`QString`, `QByteArray`, `QPoint`, `QPointF`, `QSize`, `QSizeF`, `QRect`, `QRectF`, `QColor`, `QDateTime`, `QDate`, `QTime`, `QTimeZone`, `QVector`, `QList`, `QStringList`, `QSet`, `QMap`, `QHash`, `QJsonValue`, `QJsonObject`, `QJsonArray`
 
 ---
 
 ## Macros Reference
 
+### Comparison Operators
+
 | Macro | Description |
 |-------|-------------|
-| `SS_COMPARISONS(Type)` | Generates all comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) |
-| `SS_COMPARISONS_ONLY_EQ(Type)` | Generates only equality operators (`==`, `!=`) |
-| `SS_COMPARISONS_MEMBER()` | Comparison operators as member functions |
+| `SS_COMPARISONS(Type)` | All operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) as free functions |
+| `SS_COMPARISONS_MEMBER(Type)` | All operators as member functions |
+| `SS_COMPARISONS_ONLY_EQ(Type)` | Only `==` and `!=` as free functions |
+| `SS_COMPARISONS_MEMBER_ONLY_EQ(Type)` | Only `==` and `!=` as member functions |
+| `SS_COMPARISONS_SIMPLE(Type)` | All operators via direct tuple comparison (free) |
+| `SS_COMPARISONS_MEMBER_SIMPLE(Type)` | All operators via direct tuple comparison (member) |
+
+### Hash & Swap
+
+| Macro | Description |
+|-------|-------------|
 | `SS_HASHES(Type)` | Generates `std::hash<Type>` specialization and `qHash()` |
 | `SS_SWAP(Type)` | Generates efficient swap function |
+
+### Serialization Hooks
+
+| Macro | Description |
+|-------|-------------|
+| `SS_DEFINE_BEFORE_SAVE_CONST()` | Declare `void ssBeforeSaveImpl() const` |
+| `SS_DEFINE_AFTER_SAVE_CONST()` | Declare `void ssAfterSaveImpl() const` |
+| `SS_DEFINE_BEFORE_LOAD()` | Declare `void ssBeforeLoadImpl()` |
+| `SS_DEFINE_AFTER_LOAD()` | Declare `void ssAfterLoadImpl()` |
+
+---
+
+## Versioning
+
+### Basics
+
+Define a version chain using `ssVersions` and implement `ssUpgradeFrom` / `ssDowngradeTo` between consecutive versions:
+
+```cpp
+struct MyStruct {
+    using ssVersions = std::tuple<MyStruct_v0, MyStruct_v1, MyStruct>;
+
+    void ssUpgradeFrom(MyStruct_v1&& old) { /* populate from old */ }
+    void ssDowngradeTo(MyStruct_v1& prev) const { /* populate prev from *this */ }
+};
+```
+
+### Optional Downgrade
+
+`ssDowngradeTo` is optional. Without it, older apps won't be able to read the data (upgrade still works). Use `ssDowngradeStop` to explicitly opt out:
+
+```cpp
+struct MyStruct {
+    using ssDowngradeStop = void;  // Only the current version is written
+    // ...
+};
+```
+
+### Version Offset
+
+Use `ssVersionOffset` to drop old version structs from your codebase:
+
+```cpp
+struct MyStruct {
+    static constexpr uint8_t ssVersionOffset = 3;  // Versions 0-2 are dropped
+    using ssVersions = std::tuple<MyStruct_v3, MyStruct_v4, MyStruct>;
+    // ...
+};
+```
+
+### Non-Default-Constructible Types
+
+Use `SS_SERIALIZER_TAG` to support types without a default constructor:
+
+```cpp
+struct MyStruct {
+    explicit MyStruct(SuitableStruct::SS_SERIALIZER_TAG) : /* init */ {}
+    explicit MyStruct(int realArg) : /* init */ {}
+    // ...
+};
+```
 
 ---
 
