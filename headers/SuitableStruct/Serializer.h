@@ -3,6 +3,7 @@
  * Contact:  ihor-drachuk-libs@pm.me  */
 
 #pragma once
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
@@ -20,6 +21,10 @@
 #include <SuitableStruct/BufferReader.h>
 #include <SuitableStruct/Handlers.h>
 #include <SuitableStruct/Hashes.h>
+
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+class QByteArray;
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 // Features:
 //   - Serialization / deserialization for structures
@@ -43,6 +48,15 @@ extern const uint8_t SS_FORMAT_F1[SS_FORMAT_MARK_SIZE];  // Format F1, multiple 
 // Format detection function
 [[nodiscard]] std::optional<SSDataFormat> ssDetectFormat(const Buffer& buffer);
 [[nodiscard]] std::optional<SSDataFormat> ssDetectFormat(BufferReader& bufferReader);
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+[[nodiscard]] std::optional<SSDataFormat> ssDetectFormat(const QByteArray& buffer);
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
+
+[[nodiscard]] std::optional<uint8_t> ssPeekVersion(const Buffer& buffer);
+[[nodiscard]] std::optional<uint8_t> ssPeekVersion(BufferReader& bufferReader);
+#ifdef SUITABLE_STRUCT_HAS_QT_LIBRARY
+[[nodiscard]] std::optional<uint8_t> ssPeekVersion(const QByteArray& buffer);
+#endif // SUITABLE_STRUCT_HAS_QT_LIBRARY
 
 // ------ Forward declarations ------
 template<typename T> Buffer ssSaveInternal(const T& obj);
